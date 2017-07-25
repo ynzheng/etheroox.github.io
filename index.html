@@ -45,6 +45,7 @@
             <li class="dropdown" id="basesDropdown"></li>
           </ul>
           <ul class="nav navbar-nav navbar-right">
+            <li class="chat-button"><a href="javascript:;" class="js-gitter-toggle-chat-button">Chat</a></li>
             <li class="dropdown" id="tokenGuidesDropdown"></li>
             <li class="dropdown" id="helpDropdown"></li>
             <li class="dropdown" id="connection"></li>
@@ -98,12 +99,6 @@
               <span class="trn">trades</span>
             </div>
             <div id="trades"></div>
-            
-                        
-           
-            
-          
-            
           </div>
         </div>
       
@@ -419,6 +414,13 @@
     <script src="/js/ejs_production.js" type="text/javascript"></script>
     <script src="/js/bundle.js" type="text/javascript"></script>
     <script src="script.js" type="text/javascript"></script>
+    <script>
+      ((window.gitter = {}).chat = {}).options = {
+        room: 'etherdelta/etherdelta.github.io',
+        activationElement: false
+      };
+    </script>
+    <script src="/js/sidecar.v1.js" async defer></script>
      
   </body>
 </html>
