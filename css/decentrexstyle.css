@@ -47,6 +47,19 @@
 
 /*Main///////////////////*/
 
+.navbar.navbar-default {
+  background: #fff;
+  border: 0;
+  border-radius: 0;
+}
+a.navbar-brand {
+  height: 50px;
+  padding: 0;
+}
+.navbar-brand img {
+  height: 100%;
+}
+
 .container {
   margin: 0;
   padding: 0;
@@ -57,6 +70,7 @@
   box-sizing: border-box;
   font-size: 90%;
 }
+
 
 .center {
   text-align: center;
