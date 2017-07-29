@@ -1,11 +1,11 @@
 /* eslint-env browser */
 
 module.exports = {
-  homeURL: 'https://decentrex.com',
-  contractDecentrEx: 'smart_contract/decentrex.sol',
+  homeURL: 'https://etheroox.github.io/',
+  contractDecentrEx: 'smart_contract/etheroox.sol',
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
-  contractDecentrExAddrs: [
+  contractEtheRooxAddrs: [
     { addr: '0xbf29685856fae1e228878dfb35b280c0adcc3b05', info: 'Deployed 05/26/2017' },
   ],
   ethTestnet: false,
@@ -19,12 +19,12 @@ module.exports = {
   gasTrade: 250000,
   gasOrder: 250000,
   ordersOnchain: false,
-  apiServer: 'https://api.decentrex.com',
-  userCookie: 'DecentrEx',
-  eventsCacheCookie: 'DecentrEx_eventsCache',
-  deadOrdersCacheCookie: 'DecentrEx_deadOrdersCache',
-  ordersCacheCookie: 'DecentrEx_ordersCache',
-  etherscanAPIKey: 'KF9ADFTHP4WJF1GV3WHJZCTFZIN5XZUXG1',
+  apiServer: 'https://api.etheroox.com',
+  userCookie: 'EtheRoox',
+  eventsCacheCookie: 'EtheRoox_eventsCache',
+  deadOrdersCacheCookie: 'EtheRoox_deadOrdersCache',
+  ordersCacheCookie: 'EtheRoox_ordersCache',
+  etherscanAPIKey: 'SCYVG55I4EYS4JJ82NYMV87MGDGVNNZJ49',
   tokens: [
     { addr: '0x0000000000000000000000000000000000000000', name: 'ETH', decimals: 18 },
     { addr: '0xd0d6d6c5fe4a677d343cc433536bb717bae167dd', name: 'ADT', decimals: 9 },
