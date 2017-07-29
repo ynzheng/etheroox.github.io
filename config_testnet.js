@@ -2,10 +2,10 @@
 
 module.exports = {
   homeURL: 'http://localhost:8080',
-  contractDecentrEx: 'smart_contract/decentrex.sol',
+  contractEtheRoox: 'smart_contract/etheroox.sol',
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
-  contractDecentrExAddrs: [
+  contractEtheRooxAddrs: [
     { addr: '0x228344536a03c0910fb8be9c2755c1a0ba6f89e1', info: 'Deployed 02/09/2017' },
     { addr: '0xf80cd360e96fa96b8b7d9e95d5a7911ac5f09ec2', info: 'Deployed 10/24/2016' },
     { addr: '0xcdd152384c55dd4e5b5a3128cc90e0d9311570de', info: 'Deployed 10/06/2016' },
@@ -25,10 +25,10 @@ module.exports = {
   gasOrder: 250000,
   ordersOnchain: false,
   apiServer: 'http://localhost:3000',
-  userCookie: 'DecentrEx',
-  eventsCacheCookie: 'DecentrEx_eventsCache',
-  deadOrdersCacheCookie: 'DecentrEx_deadOrdersCache',
-  ordersCacheCookie: 'DecentrEx_ordersCache',
+  userCookie: 'EtheRoox',
+  eventsCacheCookie: 'EtheRoox_eventsCache',
+  deadOrdersCacheCookie: 'EtheRoox_deadOrdersCache',
+  ordersCacheCookie: 'EtheRoox_ordersCache',
   etherscanAPIKey: 'GCGR1C9I17TYIRNYUDDEIJH1K5BRPH4UDE',
   tokens: [
     { addr: '0x0000000000000000000000000000000000000000', name: 'ETH', decimals: 18 },
