@@ -5,7 +5,7 @@ $(() => {
   $('body').on('click', '#accountSubmit', (e) => {
     e.preventDefault();
     $('#accountModal').modal('hide');
-    bundle.DecentrEx.addAccount($('#accountAddr').val(), $('#accountPk').val());
+    bundle.EtheRoox.addAccount($('#accountAddr').val(), $('#accountPk').val());
   });
 });
 function buyChange() { // eslint-disable-line no-unused-vars
@@ -23,7 +23,7 @@ function sellChange() { // eslint-disable-line no-unused-vars
 $(() => {
   $('body').on('click', '#buySubmit', (e) => {
     e.preventDefault();
-    bundle.DecentrEx.order(
+    bundle.EtheRoox.order(
       'buy',
       $('#buyAmount').val(),
       $('#buyPrice').val(),
@@ -34,7 +34,7 @@ $(() => {
 $(() => {
   $('body').on('click', '#sellSubmit', (e) => {
     e.preventDefault();
-    bundle.DecentrEx.order(
+    bundle.EtheRoox.order(
       'sell',
       $('#sellAmount').val(),
       $('#sellPrice').val(),
@@ -99,7 +99,7 @@ $(() => {
   $('body').on('click', '#sellCrossSubmit', (e) => {
     e.preventDefault();
     $('#sellCrossModal').modal('hide');
-    bundle.DecentrEx.trade(
+    bundle.EtheRoox.trade(
       'sell',
       JSON.parse($('#sellCrossOrder').val()),
       $('#sellCrossAmount').val());
@@ -109,7 +109,7 @@ $(() => {
   $('body').on('click', '#otherTokenSubmit', (e) => {
     e.preventDefault();
     $('#otherTokenModal').modal('hide');
-    bundle.DecentrEx.selectToken(
+    bundle.EtheRoox.selectToken(
       $('#otherTokenAddr').val(),
       $('#otherTokenName').val(),
       $('#otherTokenDecimals').val());
@@ -119,19 +119,19 @@ $(() => {
   $('body').on('click', '#otherBaseSubmit', (e) => {
     e.preventDefault();
     $('#otherBaseModal').modal('hide');
-    bundle.DecentrEx.selectBase(
+    bundle.EtheRoox.selectBase(
       $('#otherBaseAddr').val(),
       $('#otherBaseName').val(),
       $('#otherBaseDecimals').val());
   });
 });
 function depositClick(addr) { // eslint-disable-line no-unused-vars
-  bundle.DecentrEx.deposit(addr, $(`#depositAmount${addr}`).val());
+  bundle.EtheRoox.deposit(addr, $(`#depositAmount${addr}`).val());
 }
 function withdrawClick(addr) { // eslint-disable-line no-unused-vars
-  bundle.DecentrEx.withdraw(addr, $(`#withdrawAmount${addr}`).val());
+  bundle.EtheRoox.withdraw(addr, $(`#withdrawAmount${addr}`).val());
 }
 function transferClick(addr) { // eslint-disable-line no-unused-vars
-  bundle.DecentrEx.transfer(addr, $(`#transferAmount${addr}`).val(), $(`#transferTo${addr}`).val());
+  bundle.EtheRoox.transfer(addr, $(`#transferAmount${addr}`).val(), $(`#transferTo${addr}`).val());
 }
 $(() => {});
