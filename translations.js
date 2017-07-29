@@ -24,16 +24,16 @@ module.exports = {
     es: 'Español',
   },
   title: {
-    en: 'DecentrEx',
-    cn: 'DecentrEx',
-    fr: 'DecentrEx',
-    es: 'DecentrEx',
+    en: 'EtheRoox',
+    cn: 'EtheRoox',
+    fr: 'EtheRoox',
+    es: 'EtheRoox',
   },
   description: {
-    en: 'DecentrEx is a decentralized exchange for Ethereum tokens.',
-    cn: 'DecentrEx是去中心化的以太坊交易平台。',
-    fr: "DecentrEx est une bourse d'échange de jetons ethereum décentralisé.",
-    es: 'DecentrEx se ha posicionado como la primera bolsa de cambio de cryptomonedas y symbolicos de la blockchain Ethereum.',
+    en: 'EtheRoox is a decentralized exchange for Ethereum tokens.',
+    cn: 'EtheRoox是去中心化的以太坊交易平台。',
+    fr: "EtheRoox est une bourse d'échange de jetons ethereum décentralisé.",
+    es: 'EtheRoox se ha posicionado como la primera bolsa de cambio de cryptomonedas y symbolicos de la blockchain Ethereum.',
     // cn:'DecentrEx是无中心的以太坊交易平台。'
   },
   Smart_Contract: {
@@ -103,11 +103,11 @@ module.exports = {
     es: 'Profundidad',
   },
   only_7_days: {
-    en: 'Note: DecentrEx will only show transactions from the last 7 days.',
-    cn: 'Note: DecentrEx 只会显示近7天的交易记录',
+    en: 'Note: EtheRoox will only show transactions from the last 7 days.',
+    cn: 'Note: EtheRoox 只会显示近7天的交易记录',
     // cn:'Note: DecentrEx will only show transactions from the last 7 days.'
-    fr: 'Note: DecentrEx ne montrera que les 7 derniers jours de transactions.',
-    es: 'Nota Bene: DecentrEx sólo mostrará las transacciones de los últimos 7 días.',
+    fr: 'Note: EtheRoox ne montrera que les 7 derniers jours de transactions.',
+    es: 'Nota Bene: EtheRoox sólo mostrará las transacciones de los últimos 7 días.',
   },
 
   announcements: {
@@ -168,12 +168,12 @@ module.exports = {
     fr: 'Produit par Etherboost',
     es: 'Producido por Etherboost',
   },
-  decentrex_desc: {
-    en: 'DecentrEx &#8212; decentralized token exchange',
-    cn: 'DecentrEx &#8212; 去中心化交易',
+  etheroox_desc: {
+    en: 'EtheRoox &#8212; decentralized token exchange',
+    cn: 'EtheRoox &#8212; 去中心化交易',
     // cn:'DecentrEx &#8212; 无中心交易'
-    fr: 'DecentrEx &#8212; échange de jetons décentralisé',
-    es: 'DecentrEx &#8212; échange de jetons décentralisé',
+    fr: 'EtheRoox &#8212; échange de jetons décentralisé',
+    es: 'EtheRoox &#8212; échange de jetons décentralisé',
   },
   etheropt_desc: {
     en: 'EtherOpt &#8212; decentralized options exchange',
@@ -361,10 +361,10 @@ module.exports = {
     es: '3 Agosto, 2016',
   },
   aug032016_announcement: {
-    en: 'DecentrEx has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
-    cn: 'DecentrEx更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
+    en: 'EtheRoox has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
+    cn: 'EtheRoox更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
     // cn:'DecentrEx迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
-    fr: "DecentrEx a ete modifié pour un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il reste du solde à retirer.",
+    fr: "EtheRoox a ete modifié pour un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il reste du solde à retirer.",
   },
   aug302016: {
     en: 'August 30, 2016',
@@ -373,11 +373,11 @@ module.exports = {
     es: '30 Agosto 2016',
   },
   aug302016_announcement: {
-    en: 'DecentrEx has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
-    cn: 'DecentrEx更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
-    // cn:'DecentrEx迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
-    fr: "DecentrEx utilise un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il vous reste du solde à retirer.",
-    es: 'DecentrEx utiliza un nuevo contrato inteligente.',
+    en: 'EtheRoox has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
+    cn: 'EtheRoox更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
+    // cn:'EtheRoox迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
+    fr: "EtheRoox utilise un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il vous reste du solde à retirer.",
+    es: 'EtheRoox utiliza un nuevo contrato inteligente.',
   },
   new_account: {
     en: 'New account',
@@ -439,11 +439,11 @@ module.exports = {
     fr: 'Portefeuille',
     es: 'Cartera',
   },
-  balance_decentrex: {
-    en: 'DecentrEx',
-    cn: 'DecentrEx',
-    fr: 'DecentrEx',
-    es: 'DecentrEx',
+  balance_etheroox: {
+    en: 'EtheRoox',
+    cn: 'EtheRoox',
+    fr: 'EtheRoox',
+    es: 'EtheRoox',
   },
   amount: {
     en: 'Amount',
@@ -675,10 +675,10 @@ module.exports = {
     es: 'Es posible que el comercio un símbolo que no aparece en la lista, seleccione "Otros" y rellena los campos del formulario. Differentes simbolicos tienen differentes multiplicadores, es pues indispensable cumplir el formulario con cuidado.',
   },
   trade_3: {
-    en: 'DecentrEx supports resting orders (adding liquidity) and trading against existing resting orders (taking liquidity).',
-    cn: 'DecentrEx支持“待定下单”（resting order）来增加流动性，以及交易“待定下单”来减少流动性。',
-    fr: "DecentrEx supportes les ordres restant (l'ajout de liquidite) et marchander contre des ordres restant (prise de liquidite).",
-    es: 'DecentrEx apoya descansando órdenes tales como la adición de liquidez y el comercio contre órdenes existentes como descansando Tomando liquidez..',
+    en: 'EtheRoox supports resting orders (adding liquidity) and trading against existing resting orders (taking liquidity).',
+    cn: 'EtheRoox支持“待定下单”（resting order）来增加流动性，以及交易“待定下单”来减少流动性。',
+    fr: "EtheRoox supportes les ordres restant (l'ajout de liquidite) et marchander contre des ordres restant (prise de liquidite).",
+    es: 'EtheRoox apoya descansando órdenes tales como la adición de liquidez y el comercio contre órdenes existentes como descansando Tomando liquidez..',
   },
   trade_4: {
     en: 'To create a resting order, fill out the "Buy" or "Sell" form at the top of the page. The order expires in the number of blocks you specify (1 block &#8776; 15 seconds).',
