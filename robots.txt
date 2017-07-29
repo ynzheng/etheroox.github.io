@@ -3,4 +3,4 @@ Disallow: /js/
 Disallow: /css/
 Disallow: /templates/
 Disallow: /help/
-Sitemap: https://decentrex.com/sitemap.xml
+Sitemap: https://etheroox.com/sitemap.xml
