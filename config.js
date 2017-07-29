@@ -2,7 +2,7 @@
 
 module.exports = {
   homeURL: 'https://etheroox.github.io/',
-  contractDecentrEx: 'smart_contract/etheroox.sol',
+  contractEtheRoox: 'smart_contract/etheroox.sol',
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
   contractEtheRooxAddrs: [
