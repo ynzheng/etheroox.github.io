@@ -26,8 +26,8 @@
         <tr>
           <td><%= event.blockNumber %><a href="<%= event.txLink %>" target="_blank"><i class="fa fa-external-link" aria-hidden="true"></i></a></td>
           <td><% if(selectedAddr.toLowerCase()==trade.buyer.toLowerCase()) { %><span class="trn">buy</span><% } else { %><span class="trn">sell</span><% } %></span></td>
-          <td class="align-right"><%= bundle.utility.weiToEth(Math.abs(trade.amount), bundle.DecentrEx.getDivisor(selectedToken)) %></td>
-          <td class="align-right"><%= bundle.utility.weiToEth(Math.abs(trade.amount)*trade.price * bundle.DecentrEx.getDivisor(selectedBase)/bundle.DecentrEx.getDivisor(selectedToken), bundle.DecentrEx.getDivisor(selectedBase)) %></td>
+          <td class="align-right"><%= bundle.utility.weiToEth(Math.abs(trade.amount), bundle.EtheRoox.getDivisor(selectedToken)) %></td>
+          <td class="align-right"><%= bundle.utility.weiToEth(Math.abs(trade.amount)*trade.price * bundle.EtheRoox.getDivisor(selectedBase)/bundle.EtheRoox.getDivisor(selectedToken), bundle.EtheRoox.getDivisor(selectedBase)) %></td>
           <td class="align-right padding-right"><%= trade.price.toNumber().toFixed(5) %></td>
         </tr>
       <% } else if (event.deposit) { %>
@@ -35,8 +35,8 @@
         <tr>
           <td><%= event.blockNumber %><a href="<%= event.txLink %>" target="_blank"><i class="fa fa-external-link" aria-hidden="true"></i></a></td>
           <td><span class="trn">deposit</span></td>
-          <td class="align-right"><% if (deposit.token.addr==selectedToken.addr) {%><%= bundle.utility.weiToEth(deposit.amount, bundle.DecentrEx.getDivisor(deposit.token)) %><% } %></td>
-          <td class="align-right"><% if (deposit.token.addr==selectedBase.addr) {%><%= bundle.utility.weiToEth(deposit.amount, bundle.DecentrEx.getDivisor(deposit.token)) %><% } %></td>
+          <td class="align-right"><% if (deposit.token.addr==selectedToken.addr) {%><%= bundle.utility.weiToEth(deposit.amount, bundle.EtheRoox.getDivisor(deposit.token)) %><% } %></td>
+          <td class="align-right"><% if (deposit.token.addr==selectedBase.addr) {%><%= bundle.utility.weiToEth(deposit.amount, bundle.EtheRoox.getDivisor(deposit.token)) %><% } %></td>
           <td class="align-right padding-right"></td>
         </tr>
       <% } else if (event.withdraw) { %>
@@ -44,8 +44,8 @@
         <tr>
           <td><%= event.blockNumber %><a href="<%= event.txLink %>" target="_blank"><i class="fa fa-external-link" aria-hidden="true"></i></a></td>
           <td><span class="trn">withdraw</span></td>
-          <td class="align-right"><% if (withdraw.token.addr==selectedToken.addr) {%><%= bundle.utility.weiToEth(withdraw.amount, bundle.DecentrEx.getDivisor(withdraw.token)) %><% } %></td>
-          <td class="align-right"><% if (withdraw.token.addr==selectedBase.addr) {%><%= bundle.utility.weiToEth(withdraw.amount, bundle.DecentrEx.getDivisor(withdraw.token)) %><% } %></td>
+          <td class="align-right"><% if (withdraw.token.addr==selectedToken.addr) {%><%= bundle.utility.weiToEth(withdraw.amount, bundle.EtheRoox.getDivisor(withdraw.token)) %><% } %></td>
+          <td class="align-right"><% if (withdraw.token.addr==selectedBase.addr) {%><%= bundle.utility.weiToEth(withdraw.amount, bundle.EtheRoox.getDivisor(withdraw.token)) %><% } %></td>
           <td class="align-right padding-right"></td>
         </tr>
       <% } %>
