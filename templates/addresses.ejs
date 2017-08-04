@@ -6,7 +6,7 @@
 <ul class="dropdown-menu">
   <% addresses.forEach(function(address, i, array) { %>
     <% if (address.addr && address.addr.slice(0,39)!='0x0000000000000000000000000000000000000') { %>
-      <li><a href="javascript:;" onclick="bundle.DecentrEx.selectAccount(<%= i%>);"><%= address.addr %> <span class="badge"><%= bundle.utility.weiToEth(address.balance) %> ETH</span></a></li>
+      <li><a href="javascript:;" onclick="bundle.EtheRoox.selectAccount(<%= i%>);"><%= address.addr %> <span class="badge"><%= bundle.utility.weiToEth(address.balance) %> ETH</span></a></li>
     <% } %>
   <% }); %>
   <% if (addresses.filter(function(address) {return address.addr.slice(0,39) != '0x0000000000000000000000000000000000000'}).length>0) { %>
