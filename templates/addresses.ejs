@@ -12,14 +12,14 @@
   <% if (addresses.filter(function(address) {return address.addr.slice(0,39) != '0x0000000000000000000000000000000000000'}).length>0) { %>
     <li role="separator" class="divider"></li>
   <% } %>
-  <li><a href="javascript:;" onclick="bundle.DecentrEx.createAccount()"><span class="trn">new_account</span></a></li>
+  <li><a href="javascript:;" onclick="bundle.EtheRoox.createAccount()"><span class="trn">new_account</span></a></li>
   <li><a href="javascript:;" data-toggle="modal" data-target="#accountModal"><span class="trn">import_account</span></a></li>
   <% if (addresses[selectedAccount].addr && addresses[selectedAccount].addr.slice(0,39)!='0x0000000000000000000000000000000000000') { %>
     <li><a href="<%= addressLink %>" target="_blank"><span class="trn">etherscan_address</span></a></li>
-    <li><a href="javascript:;" onclick="bundle.DecentrEx.showPrivateKey()"><span class="trn">export_private_key</span></a></li>
-    <li><a href="javascript:;" onclick="bundle.DecentrEx.deleteAccount()"><span class="trn">forget_account</span></a></li>
+    <li><a href="javascript:;" onclick="bundle.EtheRoox.showPrivateKey()"><span class="trn">export_private_key</span></a></li>
+    <li><a href="javascript:;" onclick="bundle.EtheRoox.deleteAccount()"><span class="trn">forget_account</span></a></li>
   <% } %>
-  <li><a href="javascript:;" onclick="bundle.DecentrEx.logout()"><span class="trn">forget_all_accounts</span></a></li>
+  <li><a href="javascript:;" onclick="bundle.EtheRoox.logout()"><span class="trn">forget_all_accounts</span></a></li>
   <li role="separator" class="divider"></li>
-  <li><a href="javascript:;" onclick="bundle.DecentrEx.resetCaches();"><span class="trn">reset_cache</span></a></li>
+  <li><a href="javascript:;" onclick="bundle.EtheRoox.resetCaches();"><span class="trn">reset_cache</span></a></li>
 </ul>
