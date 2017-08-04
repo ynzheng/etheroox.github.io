@@ -4,6 +4,6 @@
   <li><a href="<%= contractLink%>" target="_blank"><span class="trn">etherscan_contract</span></a></li>
   <li role="separator" class="divider"></li>
   <% contracts.forEach(function(contract){ %>
-    <li style="<%= contractAddr==contract.addr ? 'background: #999;' : ''%>"><a href="javascript:;" onclick="bundle.DecentrEx.contractAddr('<%= contract.addr %>');"><%= contract.addr.substring(0,12) %>... (<%= contract.info %>)</a></li>
+    <li style="<%= contractAddr==contract.addr ? 'background: #999;' : ''%>"><a href="javascript:;" onclick="bundle.EtheRoox.contractAddr('<%= contract.addr %>');"><%= contract.addr.substring(0,12) %>... (<%= contract.info %>)</a></li>
   <%}) %>
 </ul>
