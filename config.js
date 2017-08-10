@@ -6,7 +6,7 @@ module.exports = {
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
   contractEtheRooxAddrs: [
-    { addr: '0xbf29685856fae1e228878dfb35b280c0adcc3b05', info: 'Deployed 05/26/2017' },
+    { addr: '0xBca13CbEBFF557143E8Ad089192380E9C9A58c70', info: 'Deployed 08/10/2017' },
   ],
   ethTestnet: false,
   ethProvider: 'http://localhost:8545',
