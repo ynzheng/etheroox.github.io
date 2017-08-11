@@ -9,7 +9,7 @@ const sha256 = require('js-sha256').sha256;
 
 function API() {}
 
-API.init = function init(callback, allContracts, path, provider, configName) {
+API.init = function init(callback, allContracts, path, provider, configName, lookbackIn) {
   const self = this;
   if (configName === 'testnet') {
     this.config = require('./config_testnet.js'); // eslint-disable-line global-require
@@ -108,7 +108,7 @@ API.init = function init(callback, allContracts, path, provider, configName) {
         (callbackSeries) => {
           API.logs(() => {
             callbackSeries(null, true);
-          });
+          },lookbackIn);
         },
       ],
       () => {
