@@ -1,7 +1,7 @@
 /* eslint-env browser */
 
 module.exports = {
-  homeURL: 'https://etheroox.github.io/',
+  homeURL: 'https://etheroox.com',
   contractEtheRoox: 'smart_contract/etheroox.sol',
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
