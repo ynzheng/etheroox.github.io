@@ -19,7 +19,7 @@ module.exports = {
   gasTrade: 250000,
   gasOrder: 250000,
   ordersOnchain: false,
-  apiServer: 'http://api.etheroox.com',
+  apiServer: 'http://etheroox.com',
   userCookie: 'EtheRoox',
   eventsCacheCookie: 'EtheRoox_eventsCache',
   deadOrdersCacheCookie: 'EtheRoox_deadOrdersCache',
