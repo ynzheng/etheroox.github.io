@@ -1,7 +1,7 @@
 /* eslint-env browser */
 
 module.exports = {
-  homeURL: 'https://etheroox.com',
+  homeURL: 'http://etheroox.com/',
   contractEtheRoox: 'smart_contract/etheroox.sol',
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
@@ -19,7 +19,7 @@ module.exports = {
   gasTrade: 250000,
   gasOrder: 250000,
   ordersOnchain: false,
-  apiServer: 'https://api.etheroox.com',
+  apiServer: 'http://api.etheroox.com',
   userCookie: 'EtheRoox',
   eventsCacheCookie: 'EtheRoox_eventsCache',
   deadOrdersCacheCookie: 'EtheRoox_deadOrdersCache',
