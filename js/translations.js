@@ -25,17 +25,17 @@ module.exports = {
     es: 'Español',
   },
   title: {
-    en: 'EtheRoox',
-    cn: 'EtheRoox',
-    fr: 'EtheRoox',
-    es: 'EtheRoox',
+    en: 'EtherDelta',
+    cn: 'EtherDelta',
+    fr: 'EtherDelta',
+    es: 'EtherDelta',
   },
   description: {
-    en: 'EtheRoox is a decentralized exchange for Ethereum tokens.',
-    cn: 'EtheRoox是去中心化的以太坊交易平台。',
-    fr: "EtheRoox est une bourse d'échange de jetons ethereum décentralisé.",
-    es: 'EtheRoox se ha posicionado como la primera bolsa de cambio de cryptomonedas y symbolicos de la blockchain Ethereum.',
-    // cn:'EtheRoox是无中心的以太坊交易平台。'
+    en: 'EtherDelta is a decentralized exchange for Ethereum tokens.',
+    cn: 'EtherDelta是去中心化的以太坊交易平台。',
+    fr: "EtherDelta est une bourse d'échange de jetons ethereum décentralisé.",
+    es: 'EtherDelta se ha posicionado como la primera bolsa de cambio de cryptomonedas y tokens de la blockchain Ethereum.',
+    // cn:'EtherDelta是无中心的以太坊交易平台。'
   },
   Smart_Contract: {
     en: 'Smart Contract',
@@ -73,6 +73,24 @@ module.exports = {
     fr: 'Le nombre de blocs Ethereum jusqu\'à ce que l\'ordre expire automatiquement. (Chaque bloc est de 14 secondes.)',
     es: 'El número de bloques Ethereum hasta que el pedido expire automáticamente. (Cada bloque es de 14 segundos.)',
   },
+  gas_price: {
+    en: 'Gas price',
+    cn: '气体价格',
+    fr: 'Prix de l\'essence',
+    es: 'Precio del gas',
+  },
+  gas_price_gwei: {
+    en: 'Gas price (gwei)',
+    cn: '气体价格 (gwei)',
+    fr: 'Prix de l\'essence (gwei)',
+    es: 'Precio del gas (gwei)',
+  },
+  set_gas_price: {
+    en: 'Set gas price',
+    cn: '气体价格',
+    fr: 'Prix de l\'essence',
+    es: 'Precio del gas',
+  },
   FAQ: {
     en: 'FAQ',
     cn: 'FAQ',
@@ -104,11 +122,10 @@ module.exports = {
     es: 'Profundidad',
   },
   only_7_days: {
-    en: 'Note: EtheRoox will only show transactions from the last 7 days.',
-    cn: 'Note: EtheRoox 只会显示近7天的交易记录',
-    // cn:'Note: EtheRoox will only show transactions from the last 7 days.'
-    fr: 'Note: EtheRoox ne montrera que les 7 derniers jours de transactions.',
-    es: 'Nota Bene: EtheRoox sólo mostrará las transacciones de los últimos 7 días.',
+    en: 'Note: EtherDelta will only show recent transactions.',
+    cn: '注意：EtherDelta只会显示最近的交易。',
+    fr: 'Remarque: EtherDelta affichera uniquement les transactions récentes.',
+    es: 'Nota: EtherDelta sólo mostrará transacciones recientes.',
   },
 
   announcements: {
@@ -128,7 +145,7 @@ module.exports = {
     cn: '订单',
     // cn:'订单簿'
     fr: 'Ordres',
-    es: 'Pedidas',
+    es: 'Pedidos',
   },
   follow_twitter: {
     en: 'Follow us on Twitter',
@@ -142,7 +159,7 @@ module.exports = {
     cn: '聊天',
     // cn:'聊'
     fr: 'Causerie',
-    es: 'Hogar del chat',
+    es: 'Chat',
   },
   send: {
     en: 'Send',
@@ -161,7 +178,7 @@ module.exports = {
     en: 'Pair',
     cn: '交易币种',
     fr: 'Paire',
-    es: 'Paras',
+    es: 'Parejas',
   },
   produced_etherboost: {
     en: 'Produced by Etherboost',
@@ -169,12 +186,12 @@ module.exports = {
     fr: 'Produit par Etherboost',
     es: 'Producido por Etherboost',
   },
-  etheroox_desc: {
-    en: 'EtheRoox &#8212; decentralized token exchange',
-    cn: 'EtheRoox &#8212; 去中心化交易',
-    // cn:'EtheRoox &#8212; 无中心交易'
-    fr: 'EtheRoox &#8212; échange de jetons décentralisé',
-    es: 'EtheRoox &#8212; échange de jetons décentralisé',
+  etherdelta_desc: {
+    en: 'EtherDelta &#8212; decentralized token exchange',
+    cn: 'EtherDelta &#8212; 去中心化交易',
+    // cn:'EtherDelta &#8212; 无中心交易'
+    fr: 'EtherDelta &#8212; échange de jetons décentralisé',
+    es: 'EtherDelta &#8212; échange de jetons décentralisé',
   },
   etheropt_desc: {
     en: 'EtherOpt &#8212; decentralized options exchange',
@@ -344,16 +361,14 @@ module.exports = {
   token: {
     en: 'Token',
     cn: '币种',
-    // cn:'币'
     fr: 'Jeton',
-    es: 'Simbolico',
+    es: 'Token',
   },
   tokens: {
     en: 'Tokens',
     cn: '币种',
-    // cn:'币'
     fr: 'Jetons',
-    es: 'Simbolicso',
+    es: 'Tokens',
   },
   aug032016: {
     en: 'August 3, 2016',
@@ -362,10 +377,9 @@ module.exports = {
     es: '3 Agosto, 2016',
   },
   aug032016_announcement: {
-    en: 'EtheRoox has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
-    cn: 'EtheRoox更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
-    // cn:'EtheRoox迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
-    fr: "EtheRoox a ete modifié pour un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il reste du solde à retirer.",
+    en: 'EtherDelta has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
+    cn: 'EtherDelta更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
+    fr: "EtherDelta a ete modifié pour un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il reste du solde à retirer.",
   },
   aug302016: {
     en: 'August 30, 2016',
@@ -374,11 +388,11 @@ module.exports = {
     es: '30 Agosto 2016',
   },
   aug302016_announcement: {
-    en: 'EtheRoox has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
-    cn: 'EtheRoox更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
-    // cn:'EtheRoox迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
-    fr: "EtheRoox utilise un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il vous reste du solde à retirer.",
-    es: 'EtheRoox utiliza un nuevo contrato inteligente.',
+    en: 'EtherDelta has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
+    cn: 'EtherDelta更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
+    // cn:'EtherDelta迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
+    fr: "EtherDelta utilise un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il vous reste du solde à retirer.",
+    es: 'EtherDelta utiliza un nuevo contrato inteligente.',
   },
   new_account: {
     en: 'New account',
@@ -440,11 +454,11 @@ module.exports = {
     fr: 'Portefeuille',
     es: 'Cartera',
   },
-  balance_etheroox: {
-    en: 'EtheRoox',
-    cn: 'EtheRoox',
-    fr: 'EtheRoox',
-    es: 'EtheRoox',
+  balance_etherdelta: {
+    en: 'EtherDelta',
+    cn: 'EtherDelta',
+    fr: 'EtherDelta',
+    es: 'EtherDelta',
   },
   amount: {
     en: 'Amount',
@@ -628,9 +642,9 @@ module.exports = {
     es: 'Arriba a la izquierda, hay dos menús desplegables para usar para seleccionar el par de divisas para intercambiar.',
   },
   deposit_withdraw_2: {
-    en: 'Under "Balances," you will see your balance for each of the two currencies you selected. This is the balance you have deposited to EtheRoox from your Ethereum account.',
+    en: 'Under "Balances," you will see your balance for each of the two currencies you selected. This is the balance you have deposited to EtherDelta from your Ethereum account.',
     cn: '在“余额”下面，你可以看到两种币的各自的余额，这是从你的以太坊账号充值的余额。',
-    fr: 'Sous "Soldes" vous trouverez le solde pour chacune des deux devises selectionnées. C\'est le solde que vous venez de déposer sur EtheRoox depuis votre compte Ethereum',
+    fr: 'Sous "Soldes" vous trouverez le solde pour chacune des deux devises selectionnées. C\'est le solde que vous venez de déposer sur etherdelta depuis votre compte Ethereum',
     es: 'En "Saldos" se encuentra el equilibrio para cada una de las dos monedas sélectionnées.',
   },
   deposit_withdraw_3: {
@@ -640,8 +654,8 @@ module.exports = {
     es: 'Para depositar, retirar o transferencia, por favor Desplazamiento en la parte inferior de la página. Busque la sección "Ventas.',
   },
   deposit_withdraw_4: {
-    en: 'To deposit, click the "Deposit" tab, pick a token, enter an amount you would like to deposit from your Ethereum account into EtheRoox, and click "Deposit."',
-    cn: '充值点“充值”，选择一种币，输入从以太坊账号进入EtheRoox的充值数量，再点“充值”。',
+    en: 'To deposit, click the "Deposit" tab, pick a token, enter an amount you would like to deposit from your Ethereum account into EtherDelta, and click "Deposit."',
+    cn: '充值点“充值”，选择一种币，输入从以太坊账号进入EtherDelta的充值数量，再点“充值”。',
     fr: 'Pour déposer, cliquer sur "Deposit" tab, choisir un jeton, entrer le montant à déposer depuis votre compte Ethereum vers Etherdelta, puis cliquer "Deposit".',
     es: 'Para abonar, haga clic en la pestaña "depósito", elegir un modo, ingrese la cantidad a depositar desde su cuenta a Etereum Etherdelta y haga clic en "depósito.',
   },
@@ -676,10 +690,10 @@ module.exports = {
     es: 'Es posible que el comercio un símbolo que no aparece en la lista, seleccione "Otros" y rellena los campos del formulario. Differentes simbolicos tienen differentes multiplicadores, es pues indispensable cumplir el formulario con cuidado.',
   },
   trade_3: {
-    en: 'EtheRoox supports resting orders (adding liquidity) and trading against existing resting orders (taking liquidity).',
-    cn: 'EtheRoox支持“待定下单”（resting order）来增加流动性，以及交易“待定下单”来减少流动性。',
-    fr: "EtheRoox supportes les ordres restant (l'ajout de liquidite) et marchander contre des ordres restant (prise de liquidite).",
-    es: 'EtheRoox apoya descansando órdenes tales como la adición de liquidez y el comercio contre órdenes existentes como descansando Tomando liquidez..',
+    en: 'EtherDelta supports resting orders (adding liquidity) and trading against existing resting orders (taking liquidity).',
+    cn: 'EtherDelta支持“待定下单”（resting order）来增加流动性，以及交易“待定下单”来减少流动性。',
+    fr: "EtherDelta supportes les ordres restant (l'ajout de liquidite) et marchander contre des ordres restant (prise de liquidite).",
+    es: 'EtherDelta apoya descansando órdenes tales como la adición de liquidez y el comercio contre órdenes existentes como descansando Tomando liquidez..',
   },
   trade_4: {
     en: 'To create a resting order, fill out the "Buy" or "Sell" form at the top of the page. The order expires in the number of blocks you specify (1 block &#8776; 15 seconds).',
@@ -694,8 +708,8 @@ module.exports = {
     es: 'Si desea cancelar su pedido, simplemente haga clic en su pedido aparecerá en el libro de órdenes y pulse el botón "Cancelar". Esto enviará una transacción Ethereum, una vez confirmada, canceló la orden. Cabe señalar que induce un coste de gas (Tarifas de transacción Ethereum), mientras que la colocación de un pedido restante hasta su expiración no cuesta de gas.',
   },
   trade_6: {
-    en: 'When you submit a resting order, it gets broadcast to the world. The current broadcast channel is a Gitter chat room, but EtheRoox also supports using Ethereum events as a fallback broadcast mechanism.',
-    cn: '但你提交了一个“待定下单”后，它会广播到全球。现在的传播渠道是Gitter聊天室，但是EtheRoox也支持以太坊事件机制，用来保底。',
+    en: 'When you submit a resting order, it gets broadcast to the world. The current broadcast channel is a Gitter chat room, but EtherDelta also supports using Ethereum events as a fallback broadcast mechanism.',
+    cn: '但你提交了一个“待定下单”后，它会广播到全球。现在的传播渠道是Gitter聊天室，但是EtherDelta也支持以太坊事件机制，用来保底。',
     fr: "Quand vous soumettez un ordre restant, il se diffuse dans le monde entier. Le canal de causerie principal s'appele Gitter chat room, mais Etherdelta supporte egalement des evenements ethereum en tant que moyen de diffusion alternative.",
     es: 'Cuando se envía una orden de reposo, que se transmitió al mundo. El canal de difusión actual es una sala de chat Gitter, Etherdelta también promueve eventos Ethereum como un medio alternativo de distribución.',
   },
@@ -706,10 +720,10 @@ module.exports = {
     es: 'La interfaz gráfica de usuario detecta nuevos pedidos recibidos y que se muestran en el libro de orden (izquierda venta, compra derecha).',
   },
   trade_8: {
-    en: 'A resting order represents a cryptographically signed intent to trade. Up until your order expires or is cancelled, anyone who has seen it can trade against it, assuming both traders have enough funds in their EtheRoox accounts. The GUI filters out orders that do not have funds to back them up. Partial fills are supported.',
+    en: 'A resting order represents a cryptographically signed intent to trade. Up until your order expires or is cancelled, anyone who has seen it can trade against it, assuming both traders have enough funds in their EtherDelta accounts. The GUI filters out orders that do not have funds to back them up. Partial fills are supported.',
     cn: '“待定下单”代表加密签名过的交易意向。在你的订单过期或取消以前，看见这个订单的任何人可以与它交易（前提是双方账号中有足够的币）。页面会过滤掉币的数量不够的订单。订单也可以部分成交。',
-    fr: "Un ordre restant represente une intention de commercer cryptographiquement signée. Jusqu'à ce que votre commande expire ou soit annulée, quiconque l'a vu peut échanger contre elle, en supposant que les deux commerçants disposent de suffisamment de fonds dans leurs comptes EtheRoox. Le remplissage partiel de l'ordre est egalement supporte.",
-    es: 'Una orden restante representa intención de negociar, firmado criptográficamente. Hasta que el pedido se cancela o expira, cualquiera puede intercambiar sierra en contra de ella, suponiendo que ambos operadores tienen fondos suficientes en sus cuentas EtheRoox. También se admite el llenado parcial de la orden.',
+    fr: "Un ordre restant represente une intention de commercer cryptographiquement signée. Jusqu'à ce que votre commande expire ou soit annulée, quiconque l'a vu peut échanger contre elle, en supposant que les deux commerçants disposent de suffisamment de fonds dans leurs comptes EtherDelta. Le remplissage partiel de l'ordre est egalement supporte.",
+    es: 'Una orden restante representa intención de negociar, firmado criptográficamente. Hasta que el pedido se cancela o expira, cualquiera puede intercambiar sierra en contra de ella, suponiendo que ambos operadores tienen fondos suficientes en sus cuentas EtherDelta. También se admite el llenado parcial de la orden.',
   },
   trade_9: {
     en: 'To trade against an existing resting order, click "Buy" or "Sell" next to it in the order book and type in the volume you want to trade. The GUI will do one last check that the trade can cross (the funds are there and the order hasn\'t already traded), but if someone submits a transaction right before you do, your Ethereum transaction will fail because the order already traded.',
@@ -865,7 +879,7 @@ module.exports = {
     en: 'Trades',
     cn: '交易',
     fr: 'Trades',
-    es: 'Trades',
+    es: 'Historial',
   },
   auto_refresh: {
     en: 'Auto refresh',
@@ -877,7 +891,7 @@ module.exports = {
     en: 'My transactions',
     cn: '我的交易',
     fr: 'Mes transactions',
-    es: 'Meis transacciones',
+    es: 'Mis transacciones',
   },
   or: {
     en: 'or',

@@ -42,15 +42,15 @@ API.init = function init(callback, allContracts, path, provider, configName, loo
 
     // path
     if (path) {
-      this.config.contractEtheRoox = path + this.config.contractEtheRoox;
+      this.config.contractEtherDelta = path + this.config.contractEtherDelta;
       this.config.contractToken = path + this.config.contractToken;
     }
 
     // contracts
-    this.contractEtheRoox = undefined;
-    this.contractEtheRooxAddrs = [this.config.contractEtheRooxAddrs[0].addr];
+    this.contractEtherDelta = undefined;
+    this.contractEtherDeltaAddrs = [this.config.contractEtherDeltaAddrs[0].addr];
     if (allContracts) {
-      this.contractEtheRooxAddrs = this.config.contractEtheRooxAddrs.map(x => x.addr);
+      this.contractEtherDeltaAddrs = this.config.contractEtherDeltaAddrs.map(x => x.addr);
     }
     this.contractToken = undefined;
 
@@ -73,10 +73,10 @@ API.init = function init(callback, allContracts, path, provider, configName, loo
         (callbackSeries) => {
           this.utility.loadContract(
             this.web3,
-            this.config.contractEtheRoox,
-            this.contractEtheRooxAddrs[0],
+            this.config.contractEtherDelta,
+            this.contractEtherDeltaAddrs[0],
             (err, contract) => {
-              this.contractEtheRoox = contract;
+              this.contractEtherDelta = contract;
               callbackSeries(null, true);
             });
         },
@@ -108,12 +108,12 @@ API.init = function init(callback, allContracts, path, provider, configName, loo
         (callbackSeries) => {
           API.logs(() => {
             callbackSeries(null, true);
-          },lookbackIn);
+          }, lookbackIn);
         },
       ],
       () => {
         callback(null, {
-          contractEtheRoox: this.contractEtheRoox,
+          contractEtherDelta: this.contractEtherDelta,
           contractToken: this.contractToken,
         });
       });
@@ -178,10 +178,10 @@ API.logs = function logs(callback, lookbackIn) {
       if (event.blockNumber < startBlock) delete this.eventsCache[id]; // delete old events
     });
     async.mapSeries(
-      this.contractEtheRooxAddrs,
-      (contractEtheRooxAddr, callbackMap) => {
+      this.contractEtherDeltaAddrs,
+      (contractEtherDeltaAddr, callbackMap) => {
         const blocks = Object.values(this.eventsCache)
-          .filter(x => x.address === contractEtheRooxAddr)
+          .filter(x => x.address === contractEtherDeltaAddr)
           .map(x => x.blockNumber);
         const lastBlock = blocks.length ? blocks.max() : startBlock;
         const searches = [];
@@ -194,8 +194,8 @@ API.logs = function logs(callback, lookbackIn) {
           (searchRange, callbackMapSearch) => {
             this.utility.logsOnce(
               this.web3,
-              this.contractEtheRoox,
-              contractEtheRooxAddr,
+              this.contractEtherDelta,
+              contractEtherDeltaAddr,
               searchRange[0],
               searchRange[1],
               (errEvents, events) => {
@@ -269,13 +269,13 @@ API.getBalance = function getBalance(addr, callback) {
   });
 };
 
-API.getEtheRooxBalance = function getEtheRooxBalance(addr, callback) {
+API.getEtherDeltaBalance = function getEtherDeltaBalance(addr, callback) {
   if (addr.length === 42) {
     const token = '0x0000000000000000000000000000000000000000'; // ether token
     this.utility.call(
       this.web3,
-      this.contractEtheRoox,
-      this.contractEtheRooxAddrs[0],
+      this.contractEtherDelta,
+      this.contractEtherDeltaAddrs[0],
       'balanceOf',
       [token, addr],
       (err, result) => {
@@ -290,7 +290,7 @@ API.getEtheRooxBalance = function getEtheRooxBalance(addr, callback) {
   }
 };
 
-API.getEtheRooxTokenBalances = function getEtheRooxTokenBalances(addr, callback) {
+API.getEtherDeltaTokenBalances = function getEtherDeltaTokenBalances(addr, callback) {
   if (addr.length === 42) {
     async.reduce(
       this.config.tokens,
@@ -298,8 +298,8 @@ API.getEtheRooxTokenBalances = function getEtheRooxTokenBalances(addr, callback)
       (memo, token, callbackReduce) => {
         this.utility.call(
           this.web3,
-          this.contractEtheRoox,
-          this.contractEtheRooxAddrs[0],
+          this.contractEtherDelta,
+          this.contractEtherDeltaAddrs[0],
           'balanceOf',
           [token.addr, addr],
           (err, result) => {
@@ -407,14 +407,14 @@ API.getUSDBalance = function getUSDBalance(addr, tokenPrices, callback) {
         API.getTokenBalances(addr, callbackParallel);
       },
       (callbackParallel) => {
-        API.getEtheRooxTokenBalances(addr, callbackParallel);
+        API.getEtherDeltaTokenBalances(addr, callbackParallel);
       },
       (callbackParallel) => {
         API.getCoinMarketCapTicker(callbackParallel);
       },
     ],
     (err, results) => {
-      const balances = { Wallet: results[0], EtheRoox: results[1] };
+      const balances = { Wallet: results[0], EtherDelta: results[1] };
       const tickers = results[2];
       let total = 0;
       const ETHUSD = Number(tickers.filter(x => x.symbol === 'ETH')[0].price_usd);
@@ -516,7 +516,7 @@ API.addOrderFromMessage = function addOrderFromMessage(messageIn, callback) {
   Object.keys(message).forEach((key) => {
     if (typeof message[key] === 'number') {
       Object.assign(message, {
-        [key]: new BigNumber(message[key]),
+        [key]: new BigNumber(String(message[key])),
       });
     }
   });
@@ -579,7 +579,7 @@ API.addOrderFromMessage = function addOrderFromMessage(messageIn, callback) {
 };
 
 API.addOrderFromEvent = function addOrderFromEvent(event, callback) {
-  if (event.event === 'Order' && event.address === this.contractEtheRooxAddrs[0]) {
+  if (event.event === 'Order' && event.address === this.contractEtherDeltaAddrs[0]) {
     const id = (event.blockNumber * 1000) + event.transactionIndex;
     if (!this.ordersCache[`${id}_buy`]) {
       const buyOrder = {
@@ -659,8 +659,8 @@ API.updateOrder = function updateOrder(orderIn, callback) {
         () => {
           this.utility.call(
             this.web3,
-            this.contractEtheRoox,
-            this.contractEtheRooxAddrs[0],
+            this.contractEtherDelta,
+            this.contractEtherDeltaAddrs[0],
             'availableVolume',
             [
               order.order.tokenGet,
@@ -678,6 +678,10 @@ API.updateOrder = function updateOrder(orderIn, callback) {
               if (!errAvail) {
                 const availableVolume = resultAvail;
                 if (order.amount >= 0) {
+                  order.price = new BigNumber(order.order.amountGive)
+                    .div(new BigNumber(order.order.amountGet))
+                    .mul(API.getDivisor(order.order.tokenGet))
+                    .div(API.getDivisor(order.order.tokenGive));
                   order.availableVolume = availableVolume;
                   order.ethAvailableVolume = this.utility.weiToEth(
                     Math.abs(order.availableVolume),
@@ -689,6 +693,10 @@ API.updateOrder = function updateOrder(orderIn, callback) {
                   order.ethAvailableVolumeBase = this.utility.weiToEth(order.availableVolumeBase,
                     API.getDivisor(order.order.tokenGive));
                 } else {
+                  order.price = new BigNumber(order.order.amountGet)
+                    .div(new BigNumber(order.order.amountGive))
+                    .mul(API.getDivisor(order.order.tokenGive))
+                    .div(API.getDivisor(order.order.tokenGet));
                   order.availableVolume = availableVolume
                     .div(order.price)
                     .mul(API.getDivisor(order.order.tokenGive))
@@ -705,8 +713,8 @@ API.updateOrder = function updateOrder(orderIn, callback) {
                 Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize) {
                   this.utility.call(
                     this.web3,
-                    this.contractEtheRoox,
-                    this.contractEtheRooxAddrs[0],
+                    this.contractEtherDelta,
+                    this.contractEtherDeltaAddrs[0],
                     'amountFilled',
                     [
                       order.order.tokenGet,
@@ -738,14 +746,12 @@ API.updateOrder = function updateOrder(orderIn, callback) {
                           callback('Order is filled', undefined);
                         }
                       } else {
-                        // if there's an error, assume the order is ok and try again later
                         callback(null, order);
                       }
                     });
                 } else if (!order.updated) {
-                  // if the available volume is too low,
-                  // but this is the first attempt, try again later
-                  callback(null, order);
+                  // may want to not count this as an error and try again
+                  callback('Volume too low', undefined);
                 } else {
                   callback('Volume too low', undefined);
                 }
@@ -789,17 +795,57 @@ API.getTopOrders = function getTopOrders() {
   return orders;
 };
 
-API.getOrdersByPair = function getOrdersByPair(tokenA, tokenB) {
+API.getOrdersByPair = function getOrdersByPair(tokenA, tokenB, n) {
   const orders = [];
   Object.keys(API.ordersCache).forEach((key) => {
     const order = API.ordersCache[key];
-    if ((order.order.tokenGive.toLowerCase() === tokenA.toLowerCase() &&
+    if (((order.order.tokenGive.toLowerCase() === tokenA.toLowerCase() &&
     order.order.tokenGet.toLowerCase() === tokenB.toLowerCase())
     || (order.order.tokenGive.toLowerCase() === tokenB.toLowerCase() &&
-    order.order.tokenGet.toLowerCase() === tokenA.toLowerCase())) {
+    order.order.tokenGet.toLowerCase() === tokenA.toLowerCase())) &&
+    Number(order.ethAvailableVolume).toFixed(3) >= this.minOrderSize &&
+    Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize) {
       orders.push(order);
     }
   });
+  if (n) {
+    const topNOrders = [];
+    const buys = [];
+    const sells = [];
+    orders.forEach((order) => {
+      if (order.amount > 0 && order.order.tokenGive === tokenB &&
+      order.order.tokenGet === tokenA) {
+        buys.push(order);
+      } else if (order.amount < 0 && order.order.tokenGive === tokenA &&
+      order.order.tokenGet === tokenB) {
+        sells.push(order);
+      }
+    });
+    sells.sort((a, b) => a.price - b.price || a.id - b.id);
+    buys.sort((a, b) => b.price - a.price || a.id - b.id);
+    const limitPerAddr = 5;
+    const addrsBuy = {};
+    const addrsSell = {};
+    const limitedBuys = [];
+    const limitedSells = [];
+    buys.forEach((x) => {
+      if (!addrsBuy[x.order.user]) addrsBuy[x.order.user] = 0;
+      addrsBuy[x.order.user] += 1;
+      if (addrsBuy[x.order.user] <= limitPerAddr) limitedBuys.push(x);
+    });
+    sells.forEach((x) => {
+      if (!addrsSell[x.order.user]) addrsSell[x.order.user] = 0;
+      addrsSell[x.order.user] += 1;
+      if (addrsSell[x.order.user] <= limitPerAddr) limitedSells.push(x);
+    });
+    limitedBuys.slice(0, n).forEach((order) => {
+      topNOrders.push(order);
+    });
+    limitedSells.slice(0, n).forEach((order) => {
+      topNOrders.push(order);
+    });
+    return topNOrders;
+  }
   return orders;
 };
 
@@ -861,7 +907,7 @@ API.getTrades = function getTrades(callback) {
   const trades = [];
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Trade' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0) {
+    if (event.event === 'Trade' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         // sell
@@ -878,6 +924,7 @@ API.getTrades = function getTrades(callback) {
           date: new Date(this.utility.hexToDec(event.timeStamp) * 1000),
           buyer: event.args.get,
           seller: event.args.give,
+          txHash: event.transactionHash,
         });
         // buy
         trades.push({
@@ -893,6 +940,7 @@ API.getTrades = function getTrades(callback) {
           date: new Date(this.utility.hexToDec(event.timeStamp) * 1000),
           buyer: event.args.give,
           seller: event.args.get,
+          txHash: event.transactionHash,
         });
       }
     }
@@ -907,7 +955,7 @@ API.getFees = function getFees(callback) {
   const feeMake = new BigNumber(0.000);
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Trade' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0) {
+    if (event.event === 'Trade' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         // take fee
@@ -937,7 +985,7 @@ API.getVolumes = function getVolumes(callback) {
   const volumes = [];
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Trade' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0) {
+    if (event.event === 'Trade' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         volumes.push({
@@ -965,7 +1013,7 @@ API.getDepositsWithdrawals = function getDepositsWithdrawals(callback) {
   const depositsWithdrawals = [];
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Deposit' && this.contractEtheRooxAddrs.indexOf(event.address >= 0)) {
+    if (event.event === 'Deposit' && this.contractEtherDeltaAddrs.indexOf(event.address >= 0)) {
       if (event.args.amount.toNumber() > 0) {
         const token = API.getToken(event.args.token);
         depositsWithdrawals.push({
@@ -978,7 +1026,7 @@ API.getDepositsWithdrawals = function getDepositsWithdrawals(callback) {
         });
       }
     } else if (
-      event.event === 'Withdraw' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0
+      event.event === 'Withdraw' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0
     ) {
       if (event.args.amount.toNumber() > 0) {
         const token = API.getToken(event.args.token);
@@ -1000,25 +1048,58 @@ API.getDepositsWithdrawals = function getDepositsWithdrawals(callback) {
 API.returnTicker = function returnTicker(callback) {
   const tickers = {};
   const firstOldPrices = {};
+  const topOrders = API.getTopOrders();
   API.getTrades((err, result) => {
     const trades = result.trades;
     trades.sort((a, b) => a.blockNumber - b.blockNumber);
     trades.forEach((trade) => {
       if (trade.token && trade.base && trade.base.name === 'ETH') {
         const pair = `${trade.base.name}_${trade.token.name}`;
+        const { token, base } = trade;
         if (!tickers[pair]) {
-          tickers[pair] = { last: undefined, percentChange: 0, baseVolume: 0, quoteVolume: 0 };
+          let ordersFiltered = topOrders.filter(
+            x =>
+            (x.order.tokenGet.toLowerCase() === token.addr.toLowerCase() &&
+            x.order.tokenGive.toLowerCase() === base.addr.toLowerCase() && x.amount > 0) ||
+            (x.order.tokenGive.toLowerCase() === token.addr.toLowerCase() &&
+            x.order.tokenGet.toLowerCase() === base.addr.toLowerCase() && x.amount < 0));
+          // remove orders below the min order limit
+          ordersFiltered = ordersFiltered.filter(order =>
+            Number(order.ethAvailableVolume).toFixed(3) >= this.minOrderSize &&
+            Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize);
+          // filter only orders that match the smart contract address
+          ordersFiltered = ordersFiltered.filter(
+            order => order.order.contractAddr === this.config.contractEtherDeltaAddrs[0].addr);
+          // final order filtering and sorting
+          const buyOrders = ordersFiltered.filter(x => x.amount > 0);
+          const sellOrders = ordersFiltered.filter(x => x.amount < 0);
+          sellOrders.sort((a, b) => b.price - a.price || b.id - a.id);
+          buyOrders.sort((a, b) => b.price - a.price || a.id - b.id);
+          const bid = buyOrders.length > 0 ? buyOrders[0].price : undefined;
+          const ask = sellOrders.length > 0 ? sellOrders[sellOrders.length - 1].price : undefined;
+          tickers[pair] = {
+            last: undefined,
+            percentChange: 0,
+            baseVolume: 0,
+            quoteVolume: 0,
+            bid,
+            ask,
+          };
         }
-        const tradeTime = API.blockTime(trade.blockNumber);
+        const tradeTime = trade.date;
         const price = Number(trade.price);
         tickers[pair].last = price;
-        if (!firstOldPrices[pair]) firstOldPrices[pair] = price;
-        if (Date.now() - tradeTime.getTime() < 86400 * 1000 * 1) {
+        if (!tickers[pair].prices) tickers[pair].prices = [];
+        if (Date.now() - tradeTime.getTime() < 86400 * 1000 * 1) { // 24 hours
+          if (!firstOldPrices[pair]) firstOldPrices[pair] = price;
           const quoteVolume = Number(
             API.utility.weiToEth(Math.abs(trade.amount), API.getDivisor(trade.token)));
           const baseVolume = Number(
             API.utility.weiToEth(Math.abs(trade.amount * trade.price),
             API.getDivisor(trade.token)));
+          if (Date.now() - tradeTime.getTime() < 60 * 60 * 1000) { // 1 hour
+            tickers[pair].prices.push({ price, volume: quoteVolume });
+          }
           tickers[pair].quoteVolume += quoteVolume;
           tickers[pair].baseVolume += baseVolume;
           tickers[pair].percentChange = (price - firstOldPrices[pair]) / firstOldPrices[pair];
@@ -1026,6 +1107,20 @@ API.returnTicker = function returnTicker(callback) {
           firstOldPrices[pair] = price;
         }
       }
+    });
+    // 1 hour vwap
+    Object.keys(tickers).forEach((pair) => {
+      const volumeSum = tickers[pair].prices
+        .map(x => x.volume)
+        .reduce((a, b) => a + b, 0);
+      if (volumeSum > 0) {
+        tickers[pair].last = tickers[pair].prices
+          .map(x => x.price * x.volume)
+          .reduce((a, b) => a + b, 0) / volumeSum;
+      }
+      delete tickers[pair].prices;
+      tickers[pair].percentChange =
+        (tickers[pair].last - firstOldPrices[pair]) / firstOldPrices[pair];
     });
     callback(null, tickers);
   });
@@ -1061,8 +1156,8 @@ API.publishOrder = function publishOrder(
   }
   this.utility.call(
     this.web3,
-    this.contractEtheRoox,
-    this.contractEtheRooxAddrs[0],
+    this.contractEtherDelta,
+    this.contractEtherDeltaAddrs[0],
     'balanceOf',
     [tokenGive, addr],
     (err, result) => {
@@ -1073,7 +1168,7 @@ API.publishOrder = function publishOrder(
           // offchain order
         const condensed = this.utility.pack(
           [
-            this.contractEtheRooxAddrs[0],
+            this.contractEtherDeltaAddrs[0],
             tokenGet,
             amountGet,
             tokenGive,
@@ -1089,7 +1184,7 @@ API.publishOrder = function publishOrder(
           } else {
               // Send order to Gitter channel:
             const order = {
-              contractAddr: this.contractEtheRooxAddrs[0],
+              contractAddr: this.contractEtherDeltaAddrs[0],
               tokenGet,
               amountGet,
               tokenGive,
@@ -1119,8 +1214,8 @@ API.publishOrder = function publishOrder(
           // onchain order
         API.utility.send(
             this.web3,
-            this.contractEtheRoox,
-            this.contractEtheRooxAddrs[0],
+            this.contractEtherDelta,
+            this.contractEtherDeltaAddrs[0],
             'order',
           [
             tokenGet,
@@ -1387,5 +1482,3 @@ API.generateImpliedPairs = function generateImpliedPairs(pairs) {
 };
 
 module.exports = API;
-
-

@@ -352,33 +352,37 @@ module.exports = (config) => {
       try {
         tx = new Tx(options);
         function proxy() { // eslint-disable-line no-inner-declarations
-          utility.signTx(web3, fromAddress, tx, privateKey, (errSignTx, txSigned) => {
-            if (!errSignTx) {
-              const serializedTx = txSigned.serialize().toString('hex');
-              const url = `https://${config.ethTestnet ? config.ethTestnet : 'api'}.etherscan.io/api`;
-              const formData = { module: 'proxy', action: 'eth_sendRawTransaction', hex: serializedTx };
-              if (config.etherscanAPIKey) formData.apikey = config.etherscanAPIKey;
-              utility.postURL(url, formData, (errPostURL, body) => {
-                if (!errPostURL) {
-                  try {
-                    const result = JSON.parse(body);
-                    if (result.result) {
-                      callback(undefined, { txHash: result.result, nonce: nonce + 1 });
-                    } else if (result.error) {
-                      callback(result.error.message, { txHash: undefined, nonce });
+          if (privateKey) {
+            utility.signTx(web3, fromAddress, tx, privateKey, (errSignTx, txSigned) => {
+              if (!errSignTx) {
+                const serializedTx = txSigned.serialize().toString('hex');
+                const url = `https://${config.ethTestnet ? config.ethTestnet : 'api'}.etherscan.io/api`;
+                const formData = { module: 'proxy', action: 'eth_sendRawTransaction', hex: serializedTx };
+                if (config.etherscanAPIKey) formData.apikey = config.etherscanAPIKey;
+                utility.postURL(url, formData, (errPostURL, body) => {
+                  if (!errPostURL) {
+                    try {
+                      const result = JSON.parse(body);
+                      if (result.result) {
+                        callback(undefined, { txHash: result.result, nonce: nonce + 1 });
+                      } else if (result.error) {
+                        callback(result.error.message, { txHash: undefined, nonce });
+                      }
+                    } catch (errTry) {
+                      callback(errTry, { txHash: undefined, nonce });
                     }
-                  } catch (errTry) {
-                    callback(errTry, { txHash: undefined, nonce });
+                  } else {
+                    callback(err, { txHash: undefined, nonce });
                   }
-                } else {
-                  callback(err, { txHash: undefined, nonce });
-                }
-              });
-            } else {
-              console.log(err);
-              callback('Failed to sign transaction', { txHash: undefined, nonce });
-            }
-          });
+                });
+              } else {
+                console.log(err);
+                callback('Failed to sign transaction', { txHash: undefined, nonce });
+              }
+            });
+          } else {
+            callback('Failed to sign transaction', { txHash: undefined, nonce });
+          }
         }
         try {
           if (web3.currentProvider) {
@@ -506,72 +510,6 @@ module.exports = (config) => {
     }
   };
 
-  utility.logs = function logs(web3, contract, address, fromBlock, toBlock, callback) {
-    function decodeEvent(item) {
-      const eventAbis = contract.abi.filter(eventAbi => (
-          eventAbi.type === 'event' &&
-          item.topics[0] ===
-            `0x${
-              sha3(
-                `${eventAbi.name
-                  }(${
-                  eventAbi.inputs
-                    .map(x => x.type)
-                    .join()
-                  })`)}`
-        ));
-      if (eventAbis.length > 0) {
-        const eventAbi = eventAbis[0];
-        const event = new SolidityEvent(web3, eventAbi, address);
-        const result = event.decode(item);
-        callback(undefined, result);
-      }
-    }
-    function proxy(retries) {
-      let url =
-        `https://${
-        config.ethTestnet ? config.ethTestnet : 'api'
-        }.etherscan.io/api?module=logs&action=getLogs&address=${
-        address
-        }&fromBlock=${
-        fromBlock
-        }&toBlock=${
-        toBlock}`;
-      if (config.etherscanAPIKey) url += `&apikey=${config.etherscanAPIKey}`;
-      utility.getURL(url, (err, body) => {
-        if (!err) {
-          try {
-            const result = JSON.parse(body);
-            const items = result.result;
-            async.each(
-              items,
-              (item, callbackForeach) => {
-                Object.assign(item, {
-                  blockNumber: utility.hexToDec(item.blockNumber),
-                  logIndex: utility.hexToDec(item.logIndex),
-                  transactionIndex: utility.hexToDec(item.transactionIndex),
-                });
-                decodeEvent(item);
-                callbackForeach();
-              },
-              () => {
-                setTimeout(() => {
-                  proxy(retries);
-                }, 30 * 1000);
-              });
-          } catch (errTry) {
-            if (retries > 0) {
-              setTimeout(() => {
-                proxy(retries - 1);
-              }, 1000);
-            }
-          }
-        }
-      });
-    }
-    proxy(1);
-  };
-
   utility.logsOnce = function logsOnce(web3, contract, address, fromBlock, toBlock, callback) {
     function decodeEvent(item) {
       const eventAbis = contract.abi.filter(eventAbi => (
@@ -655,7 +593,8 @@ module.exports = (config) => {
       utility.getURL(url, (err, body) => {
         if (!err) {
           const result = JSON.parse(body);
-          callback(undefined, result.result);
+          const balance = new BigNumber(result.result);
+          callback(undefined, balance);
         } else {
           callback(err, undefined);
         }
@@ -818,13 +757,7 @@ module.exports = (config) => {
           if (err) {
             callback('Failed to sign message', undefined);
           } else {
-            let sigHash;
-            // When Parity 1.6.7 comes out, this special case will no longer be necessary
-            if (node.match('Parity')) {
-              sigHash = `0x${sigResult.substr(4, 64)}${sigResult.substr(68, 64)}${sigResult.substr(2, 2)}`;
-            } else {
-              sigHash = sigResult;
-            }
+            const sigHash = sigResult;
             const sig = ethUtil.fromRpcSig(sigHash);
             let msg;
             if (
@@ -1191,19 +1124,23 @@ module.exports = (config) => {
 
 }).call(this,require("buffer").Buffer)
 },{"async":12,"async/dist/async.min.js":13,"bignumber.js":18,"buffer":373,"ethereumjs-tx":98,"ethereumjs-util":101,"fs":324,"keythereum":162,"request":200,"web3":272,"web3/lib/solidity/coder.js":279,"web3/lib/utils/sha3.js":291,"web3/lib/utils/utils.js":292,"web3/lib/web3/event.js":299,"web3/lib/web3/function.js":303}],2:[function(require,module,exports){
-/* eslint-env browser */
+/* eslint-env browser  */
 
 module.exports = {
-  homeURL: 'http://etheroox.com',
-  contractEtheRoox: 'smart_contract/etheroox.sol',
+  homeURL: 'https://etherdelta.github.io',
+  contractEtherDelta: 'smart_contract/etherdelta.sol',
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
-  contractEtheRooxAddrs: [
-    { addr: '0xbca13cbebff557143e8ad089192380e9c9a58c70', info: 'Deployed 08/10/2017' },
+  contractEtherDeltaAddrs: [
+    { addr: '0x8d12a197cb00d4747a1fe03395095ce2a5cc6819', info: 'Deployed 02/09/2017' },
+    { addr: '0x373c55c277b866a69dc047cad488154ab9759466', info: 'Deployed 10/24/2016 -- please withdraw' },
+    { addr: '0x4aea7cf559f67cedcad07e12ae6bc00f07e8cf65', info: 'Deployed 08/30/2016 -- please withdraw' },
+    { addr: '0x2136bbba2edca21afdddee838fff19ea70d10f03', info: 'Deployed 08/03/2016 -- please withdraw' },
+    { addr: '0xc6b330df38d6ef288c953f1f2835723531073ce2', info: 'Deployed 07/08/2016 -- please withdraw' },
   ],
   ethTestnet: false,
   ethProvider: 'http://localhost:8545',
-  ethGasPrice: 20000000000,
+  ethGasPrice: 4000000000,
   ethAddr: '0x0000000000000000000000000000000000000000',
   ethAddrPrivateKey: '',
   gasApprove: 250000,
@@ -1212,147 +1149,266 @@ module.exports = {
   gasTrade: 250000,
   gasOrder: 250000,
   ordersOnchain: false,
-  apiServer: 'http://EtheRoox.com',
-  userCookie: 'EtheRoox',
-  eventsCacheCookie: 'EtheRoox_eventsCache',
-  deadOrdersCacheCookie: 'EtheRoox_deadOrdersCache',
-  ordersCacheCookie: 'EtheRoox_ordersCache',
-  etherscanAPIKey: 'SCYVG55I4EYS4JJ82NYMV87MGDGVNNZJ49',
-    tokens: [
+  apiServer: ['https://cache1.etherdelta.com', 'https://cache2.etherdelta.com', 'https://cache3.etherdelta.com'],
+  userCookie: 'EtherDelta',
+  eventsCacheCookie: 'EtherDelta_eventsCache',
+  deadOrdersCacheCookie: 'EtherDelta_deadOrdersCache',
+  ordersCacheCookie: 'EtherDelta_ordersCache',
+  etherscanAPIKey: 'GCGR1C9I17TYIRNYUDDEIJH1K5BRPH4UDE',
+  tokens: [
     { addr: '0x0000000000000000000000000000000000000000', name: 'ETH', decimals: 18 },
-    { addr: '0xd0d6d6c5fe4a677d343cc433536bb717bae167dd', name: 'ADT', decimals: 9 },
-    { addr: '0x4470bb87d77b963a013db939be332f927f2b992e', name: 'ADX', decimals: 4 },
-    { addr: '0x960b236a07cf122663c4303350609a66a7b288c0', name: 'ANT', decimals: 18 },
-    { addr: '0xac709fcb44a43c35f0da4e3163b117a17f3770f5', name: 'ARC', decimals: 18 },
-    { addr: '0xaf30d2a7e90d7dc361c8c4585e9bb7d2f6f15bc7', name: '1ST', decimals: 18 },
-    { addr: '0x0d8775f648430679a709e98d2b0cb6250d2887ef', name: 'BAT', decimals: 18 },
-    { addr: '0xff3519eeeea3e76f1f699ccce5e23ee0bdda41ac', name: 'BCAP', decimals: 0 },
-    { addr: '0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c', name: 'BNT', decimals: 18 },
-    { addr: '0x12fef5e57bf45873cd9b62e9dbd7bfb99e32d73e', name: 'CFI', decimals: 18 },
-    { addr: '0x41e5560054824ea6b0732e656e3ad64e20e94e45', name: 'CVC', decimals: 8 },
-    { addr: '0xe0b7927c4af23765cb51314a0e0521a9645f0e2a', name: 'DGD', decimals: 9 },
-    { addr: '0x2e071d2966aa7d8decb1005885ba1977d6038a65', name: 'DICE', decimals: 16 },
-    { addr: '0xce5c603c78d047ef43032e96b5b785324f753a4f', name: 'E4ROW', decimals: 2 },
-    { addr: '0x08711d3b02c8758f2fb3ab4e80228418a7f8e39c', name: 'EDG', decimals: 0 },
-    { addr: '0xb802b24e0637c2b87d2e8b7784c055bbe921011a', name: 'EMV', decimals: 2 },
-    { addr: '0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0', name: 'EOS', decimals: 18 },
-    { addr: '0x4fe6ea636abe664e0268af373a10ca3621a0b95b', name: 'ETB', decimals: 12 },
-    { addr: '0xc63e7b1dece63a77ed7e4aeef5efb3b05c81438d', name: 'FUCK', decimals: 4 },
-    { addr: '0x419d0d8bdd9af5e606ae2232ed285aff190e711b', name: 'FUN', decimals: 8 },
-    { addr: '0x6810e776880c02933d47db1b9fc05908e5386b96', name: 'GNO', decimals: 18 },
-    { addr: '0xae616e72d3d89e847f74e8ace41ca68bbf56af79', name: 'GOOD', decimals: 6 },
-    { addr: '0xf7b098298f7c69fc14610bf71d5e02c60792894c', name: 'GUP', decimals: 3 },
-    { addr: '0xcbcc0f036ed4788f63fc0fee32873d6a7487b908', name: 'HMQ', decimals: 8 },
-    { addr: '0x888666ca69e0f178ded6d75b5726cee99a87d698', name: 'ICN', decimals: 18 },
-    { addr: '0x5a84969bb663fb64f6d015dcf9f622aedc796750', name: 'ICE', decimals: 18 },
-    { addr: '0xe2e6d4be086c6938b53b22144855eef674281639', name: 'LNK', decimals: 18 },
-    { addr: '0xfa05a73ffe78ef8f1a739473e462c54bae6567d9', name: 'LUN', decimals: 18 },
-    { addr: '0x93e682107d1e9defb0b5ee701c71707a4b2e46bc', name: 'MCAP', decimals: 8 },
-    { addr: '0x386467f1f3ddbe832448650418311a479eecfc57', name: 'MBRS', decimals: 0 },
-    { addr: '0xc66ea802717bfb9833400264dd12c2bceaa34a6d', name: 'MKR', decimals: 18 },
-    { addr: '0xbeb9ef514a379b997e0798fdcc901ee474b6d9a1', name: 'MLN', decimals: 18 },
-    { addr: '0xcfb98637bcae43c13323eaa1731ced2b716962fd', name: 'NET', decimals: 18 },
-    { addr: '0x814964b1bceaf24e26296d031eadf134a2ca4105', name: 'NEWB', decimals: 0 },
-    { addr: '0x1776e1f26f98b1a5df9cd347953a26dd3cb46671', name: 'NMR', decimals: 18 },
-    { addr: '0x45e42d659d9f9466cd5df622506033145a9b89bc', name: 'NXC', decimals: 3 },
-    { addr: '0xd26114cd6ee289accf82350c8d8487fedb8a0c07', name: 'OMG', decimals: 18 },
-    { addr: '0xb97048628db6b661d4c2aa833e95dbe1a905b280', name: 'PAY', decimals: 18 },
-    { addr: '0xd4fa1460f537bb9085d22c7bccb5dd450ef28e3a', name: 'PPT', decimals: 8 },
     { addr: '0xd8912c10681d8b21fd3742244f44658dba12264e', name: 'PLU', decimals: 18 },
-    { addr: '0x8ae4bf2c33a8e667de34b54938b0ccd03eb8cc06', name: 'PTOY', decimals: 8 },	
-    { addr: '0x697beac28B09E122C4332D163985e8a73121b97F', name: 'QRL', decimals: 8 },
-    { addr: '0x48c80f1f4d53d5951e5d5438b54cba84f29f32a5', name: 'REP', decimals: 18 },
-    { addr: '0x607f4c5bb672230e8672085532f7e901544a7375', name: 'RLC', decimals: 9 },
-    { addr: '0x4993CB95c7443bdC06155c5f5688Be9D8f6999a5', name: 'ROUND', decimals: 18 },
-    { addr: '0x2bdc0d42996017fce214b21607a515da41a9e0c5', name: 'SKIN', decimals: 6 },
-    { addr: '0xaec2e87e0a235266d9c5adc9deb4b2e29b54d009', name: 'SNGLS', decimals: 0 },
-    { addr: '0x744d70fdbe2ba4cf95131626614a1763df805b9e', name: 'SNT', decimals: 18 },
-    { addr: '0xb64ef51c888972c908cfacf59b47c1afbc0ab8ac', name: 'STORJ', decimals: 8 },
-    { addr: '0xb9e7f8568e08d5659f5d29c4997173d84cdf2607', name: 'SWT', decimals: 18 },
-    { addr: '0xe7775a6e9bcf904eb39da2b68c5efb4f9360e08c', name: 'TAAS', decimals: 6 },
-    { addr: '0x6531f133e6deebe7f2dce5a0441aa7ef330b4e53', name: 'TIME', decimals: 8 },
-    { addr: '0xaaaf91d9b90df800df4f55c205fd6989c977e73a', name: 'TKN', decimals: 8 },
-    { addr: '0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b', name: 'TRST', decimals: 6 },
-    { addr: '0x8f3470a7388c05ee4e7af3d01d8c722b0ff52374', name: 'VERI', decimals: 18 },
+    { addr: '0xaf30d2a7e90d7dc361c8c4585e9bb7d2f6f15bc7', name: '1ST', decimals: 18 },
+    { addr: '0x936f78b9852d12f5cb93177c1f84fb8513d06263', name: 'GNTW', decimals: 18 },
+    { addr: '0x01afc37f4f85babc47c0e2d0eababc7fb49793c8', name: 'GNTM', decimals: 18 },
+    { addr: '0xa74476443119a942de498590fe1f2454d7d4ac0d', name: 'GNT', decimals: 18 },
     { addr: '0x5c543e7ae0a1104f78406c340e9c64fd9fce5170', name: 'VSL', decimals: 18 },
-    { addr: '0x667088b212ce3d06a1b553a7221e1fd19000d9af', name: 'WINGS', decimals: 18 },
+    { addr: '0xac709fcb44a43c35f0da4e3163b117a17f3770f5', name: 'ARC', decimals: 18 },
+    { addr: '0x14f37b574242d366558db61f3335289a5035c506', name: 'HKG', decimals: 3 },
+    { addr: '0x888666ca69e0f178ded6d75b5726cee99a87d698', name: 'ICN', decimals: 18 },
+    { addr: '0xe94327d07fc17907b4db788e5adf2ed424addff6', name: 'REP', decimals: 18 },
+    { addr: '0xaec2e87e0a235266d9c5adc9deb4b2e29b54d009', name: 'SNGLS', decimals: 0 },
     { addr: '0x4df812f6064def1e5e029f1ca858777cc98d2d81', name: 'XAUR', decimals: 8 },
+    { addr: '0xc66ea802717bfb9833400264dd12c2bceaa34a6d', name: 'MKR', decimals: 18 },
+    { addr: '0xe0b7927c4af23765cb51314a0e0521a9645f0e2a', name: 'DGD', decimals: 9 },
+    { addr: '0xce3d9c3f3d302436d12f18eca97a3b00e97be7cd', name: 'EPOSY', decimals: 18 },
+    { addr: '0x289fe11c6f46e28f9f1cfc72119aee92c1da50d0', name: 'EPOSN', decimals: 18 },
+    // { addr: '0xbb9bc244d798123fde783fcc1c72d3bb8c189413', name: 'DAO', decimals: 16 },
+    { addr: '0x55e7c4a77821d5c50b4570b08f9f92896a25e012', name: 'P+', decimals: 0 },
+    { addr: '0x45e42d659d9f9466cd5df622506033145a9b89bc', name: 'NXC', decimals: 3 },
+    { addr: '0x08d32b0da63e2C3bcF8019c9c5d849d7a9d791e6', name: 'DCN', decimals: 0 },
+    { addr: '0x01a7018e6d1fde8a68d12f59b6532fb523b6259d', name: 'USD.DC', decimals: 8 },
+    { addr: '0xffad42d96e43df36652c8eaf61a7e6dba2ad0e41', name: 'BTC.DC', decimals: 8 },
+    // { addr: '0x949bed886c739f1a3273629b3320db0c5024c719', name: 'AMIS', decimals: 9 },
+    { addr: '0xb9e7f8568e08d5659f5d29c4997173d84cdf2607', name: 'SWT', decimals: 18 },
+    // { addr: '0xf77089f2f00fca83501705b711cbb10a0de77628', name: 'BME', decimals: 0 },
+    { addr: '0xb802b24e0637c2b87d2e8b7784c055bbe921011a', name: 'EMV', decimals: 2 },
+    { addr: '0x6531f133e6deebe7f2dce5a0441aa7ef330b4e53', name: 'TIME', decimals: 8 },
+    // { addr: '0x059d4329078dcA62c521779c0Ce98EB9329349e6', name: 'TIG', decimals: 18 },
+    { addr: '0xbeb9ef514a379b997e0798fdcc901ee474b6d9a1', name: 'MLN', decimals: 18 },
+    { addr: '0x168296bb09e24a88805cb9c33356536b980d3fc5', name: 'RHOC', decimals: 8 },
+    { addr: '0x08711d3b02c8758f2fb3ab4e80228418a7f8e39c', name: 'EDG', decimals: 0 },
+    { addr: '0xf7b098298f7c69fc14610bf71d5e02c60792894c', name: 'GUP', decimals: 3 },
+    { addr: '0x807b9487aaf00629b674bd6d02e4917453bc5939', name: 'ETB-OLD', decimals: 12 },
+    { addr: '0x4fe6ea636abe664e0268af373a10ca3621a0b95b', name: 'ETB', decimals: 12 },
+    { addr: '0x607f4c5bb672230e8672085532f7e901544a7375', name: 'RLC', decimals: 9 },
+    { addr: '0xcb94be6f13a1182e4a4b6140cb7bf2025d28e41b', name: 'TRST', decimals: 6 },
+    { addr: '0x2e071d2966aa7d8decb1005885ba1977d6038a65', name: 'DICE', decimals: 16 },
+    { addr: '0xe7775a6e9bcf904eb39da2b68c5efb4f9360e08c', name: 'TAAS', decimals: 6 },
+    { addr: '0x6810e776880c02933d47db1b9fc05908e5386b96', name: 'GNO', decimals: 18 },
+    { addr: '0x667088b212ce3d06a1b553a7221e1fd19000d9af', name: 'WINGS', decimals: 18 },
+    { addr: '0xfa05a73ffe78ef8f1a739473e462c54bae6567d9', name: 'LUN', decimals: 18 },
+    { addr: '0xaaaf91d9b90df800df4f55c205fd6989c977e73a', name: 'TKN', decimals: 8 },
+    { addr: '0xcbcc0f036ed4788f63fc0fee32873d6a7487b908', name: 'HMQ', decimals: 8 },
+    { addr: '0x960b236a07cf122663c4303350609a66a7b288c0', name: 'ANT', decimals: 18 },
+    { addr: '0xd248b0d48e44aaf9c49aea0312be7e13a6dc1468', name: 'SGT', decimals: 1 },
+    // MNE is not ERC-20 compliant (no approve and transferFrom):
+    // { addr: '0x1a95b271b0535d15fa49932daba31ba612b52946', name: 'MNE', decimals: 8 },
+    { addr: '0xff3519eeeea3e76f1f699ccce5e23ee0bdda41ac', name: 'BCAP', decimals: 0 },
+    { addr: '0x0d8775f648430679a709e98d2b0cb6250d2887ef', name: 'BAT', decimals: 18 },
+    { addr: '0xa645264c5603e96c3b0b078cdab68733794b0a71', name: 'MYST', decimals: 8 },
+    { addr: '0x82665764ea0b58157e1e5e9bab32f68c76ec0cdf', name: 'VSM', decimals: 0 },
+    { addr: '0x12fef5e57bf45873cd9b62e9dbd7bfb99e32d73e', name: 'CFI', decimals: 18 },
+    { addr: '0x8f3470a7388c05ee4e7af3d01d8c722b0ff52374', name: 'VERI', decimals: 18 },
+    { addr: '0x40395044ac3c0c57051906da938b54bd6557f212', name: 'MGO', decimals: 8 },
+    { addr: '0x8ae4bf2c33a8e667de34b54938b0ccd03eb8cc06', name: 'PTOY', decimals: 8 },
+    { addr: '0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c', name: 'BNT', decimals: 18 },
+    { addr: '0x697beac28B09E122C4332D163985e8a73121b97F', name: 'QRL', decimals: 8 },
+    { addr: '0xae616e72d3d89e847f74e8ace41ca68bbf56af79', name: 'GOOD', decimals: 6 },
+    { addr: '0x744d70fdbe2ba4cf95131626614a1763df805b9e', name: 'SNT', decimals: 18 },
+    { addr: '0x983f6d60db79ea8ca4eb9968c6aff8cfa04b3c63', name: 'SONM', decimals: 18 },
+    { addr: '0x1776e1f26f98b1a5df9cd347953a26dd3cb46671', name: 'NMR', decimals: 18 },
+    { addr: '0x93e682107d1e9defb0b5ee701c71707a4b2e46bc', name: 'MCAP', decimals: 8 },
+    { addr: '0xb97048628db6b661d4c2aa833e95dbe1a905b280', name: 'PAY', decimals: 18 },
+    { addr: '0x5a84969bb663fb64f6d015dcf9f622aedc796750', name: 'ICE', decimals: 18 },
+    { addr: '0xd4fa1460f537bb9085d22c7bccb5dd450ef28e3a', name: 'PPT', decimals: 8 },
+    { addr: '0xbbb1bd2d741f05e144e6c4517676a15554fd4b8d', name: 'FUNOLD', decimals: 8 },
+    { addr: '0x419d0d8bdd9af5e606ae2232ed285aff190e711b', name: 'FUN', decimals: 8 },
+    { addr: '0xd0d6d6c5fe4a677d343cc433536bb717bae167dd', name: 'ADT', decimals: 9 },
+    { addr: '0xce5c603c78d047ef43032e96b5b785324f753a4f', name: 'E4ROW', decimals: 2 },
+    { addr: '0xb64ef51c888972c908cfacf59b47c1afbc0ab8ac', name: 'STORJ', decimals: 8 },
+    { addr: '0xcfb98637bcae43c13323eaa1731ced2b716962fd', name: 'NET', decimals: 18 },
+    { addr: '0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0', name: 'EOS', decimals: 18 },
+    { addr: '0x4470bb87d77b963a013db939be332f927f2b992e', name: 'ADX', decimals: 4 },
+    { addr: '0x621d78f2ef2fd937bfca696cabaf9a779f59b3ed', name: 'DRP', decimals: 2 },
+    { addr: '0x8aa33a7899fcc8ea5fbe6a608a109c3893a1b8b2', name: 'BET', decimals: 18 },
+    { addr: '0x0affa06e7fbe5bc9a764c979aa66e8256a631f02', name: 'PLBT', decimals: 6 },
+    { addr: '0xd26114cd6ee289accf82350c8d8487fedb8a0c07', name: 'OMG', decimals: 18 },
+    { addr: '0xb8c77482e45f1f44de1745f52c74426c631bdd52', name: 'BNB', decimals: 18 },
+    { addr: '0x814964b1bceaf24e26296d031eadf134a2ca4105', name: 'NEWB', decimals: 0 },
     { addr: '0xb24754be79281553dc1adc160ddf5cd9b74361a4', name: 'XRL', decimals: 9 },
-    { addr: '0x949bed886c739f1a3273629b3320db0c5024c719', name: 'AMIS', decimals: 9 }
-
+    { addr: '0x386467f1f3ddbe832448650418311a479eecfc57', name: 'MBRS', decimals: 0 },
+    { addr: '0xf433089366899d83a9f26a773d59ec7ecf30355e', name: 'MTL', decimals: 8 },
+    { addr: '0xc63e7b1dece63a77ed7e4aeef5efb3b05c81438d', name: 'FUCK', decimals: 4 },
+    { addr: '0x5c6183d10a00cd747a6dbb5f658ad514383e9419', name: 'NXX', decimals: 8 },
+    { addr: '0xd5b9a2737c9b2ff35ecb23b884eb039303bbbb61', name: 'BTH', decimals: 18 },
+    { addr: '0xe3818504c1b32bf1557b16c238b2e01fd3149c17', name: 'PLR', decimals: 18 },
+    { addr: '0x41e5560054824ea6b0732e656e3ad64e20e94e45', name: 'CVC', decimals: 8 },
+    { addr: '0xbfa4d71a51b9e0968be4bc299f8ba6cbb2f86789', name: 'MAYY', decimals: 18 },
+    { addr: '0xab130bc7ff83192656a4b3079741c296615899c0', name: 'MAYN', decimals: 18 },
+    { addr: '0xe2e6d4be086c6938b53b22144855eef674281639', name: 'LNK', decimals: 18 },
+    { addr: '0x2bdc0d42996017fce214b21607a515da41a9e0c5', name: 'SKIN', decimals: 6 },
+    { addr: '0x8b9c35c79af5319c70dd9a3e3850f368822ed64e', name: 'DGT', decimals: 18 },
+    { addr: '0xa578acc0cb7875781b7880903f4594d13cfa8b98', name: 'ECN', decimals: 2 },
+    // { addr: '0xee22430595ae400a30ffba37883363fbf293e24e', name: 'TME', decimals: 18 }, // missing a transferFrom function
+    { addr: '0x660b612ec57754d949ac1a09d0c2937a010dee05', name: 'BCD', decimals: 6 },
+    { addr: '0x8ef59b92f21f9e5f21f5f71510d1a7f87a5420be', name: 'DEX', decimals: 2 }, // needs to verify code on Etherscan
+    { addr: '0xea1f346faf023f974eb5adaf088bbcdf02d761f4', name: 'TIX', decimals: 18 },
+    { addr: '0x177d39ac676ed1c67a2b268ad7f1e58826e5b0af', name: 'CDT', decimals: 18 },
+    { addr: '0xfca47962d45adfdfd1ab2d972315db4ce7ccf094', name: 'IXT', decimals: 8 },
+    { addr: '0xa2f4fcb0fde2dd59f7a1873e121bc5623e3164eb', name: 'AIR', decimals: 0 },
+    { addr: '0x56ba2ee7890461f463f7be02aac3099f6d5811a8', name: 'CAT', decimals: 18 },
+    { addr: '0x701c244b988a513c945973defa05de933b23fe1d', name: 'OAX', decimals: 18 },
+    { addr: '0x08fd34559f2ed8585d3810b4d96ab8a05c9f97c5', name: 'CLRT', decimals: 18 },
+    { addr: '0x68aa3f232da9bdc2343465545794ef3eea5209bd', name: 'MSP', decimals: 18 },
+    { addr: '0x2a05d22db079bc40c2f77a1d1ff703a56e631cc1', name: 'BAS', decimals: 8 },
+    { addr: '0xdc0c22285b61405aae01cba2530b6dd5cd328da7', name: 'KTN', decimals: 6 },
+    // { addr: '0xc1e6c6c681b286fb503b36a9dd6c1dbff85e73cf', name: 'JET', decimals: 18 }, // needs to verify code on Etherscan
+    { addr: '0xdd6bf56ca2ada24c683fac50e37783e55b57af9f', name: 'BNC', decimals: 12 },
+    { addr: '0x0abdace70d3790235af448c88547603b945604ea', name: 'DNT', decimals: 18 },
+    { addr: '0x96a65609a7b84e8842732deb08f56c3e21ac6f8a', name: 'CTR', decimals: 18 },
+    { addr: '0x9e77d5a1251b6f7d456722a6eac6d2d5980bd891', name: 'BRAT', decimals: 8 },
+    { addr: '0x5af2be193a6abca9c8817001f45744777db30756', name: 'BQX', decimals: 8 },
+    { addr: '0x006bea43baa3f7a6f765f14f10a1a1b08334ef45', name: 'STX', decimals: 18 },
+    { addr: '0x88fcfbc22c6d3dbaa25af478c578978339bde77a', name: 'FYN', decimals: 18 },
+    { addr: '0x4e0603e2a27a30480e5e3a4fe548e29ef12f64be', name: 'CREDO', decimals: 18 },
+    { addr: '0x202e295df742befa5e94e9123149360db9d9f2dc', name: 'NIH', decimals: 8 },
+    { addr: '0x671abbe5ce652491985342e85428eb1b07bc6c64', name: 'QAU', decimals: 8 },
+    { addr: '0x3597bfd533a99c9aa083587b074434e61eb0a258', name: 'DENT', decimals: 8 },
+    { addr: '0xbc7de10afe530843e71dfb2e3872405191e8d14a', name: 'SHOUC', decimals: 18 },
+    { addr: '0x2ca72c9699b92b47272c9716c664cad6167c80b0', name: 'GUNS', decimals: 18 },
+    { addr: '0x02b9806a64cb05f02aa8dcc1c178b88159a61304', name: 'DEL', decimals: 18 },
+    { addr: '0x7c5a0ce9267ed19b22f8cae653f198e3e8daf098', name: 'SAN', decimals: 18 },
+    { addr: '0xf8e386eda857484f5a12e4b5daa9984e06e73705', name: 'IND', decimals: 18 },
   ],
-  defaultPair: { token: 'ANT', base: 'ETH' },
+  defaultPair: { token: 'PLU', base: 'ETH' },
   pairs: [
-    { token: 'ADT', base: 'ETH' },
-    { token: 'ADX', base: 'ETH' },
-    { token: 'ANT', base: 'ETH' },
-    { token: 'ARC', base: 'ETH' },
-    { token: '1ST', base: 'ETH' },
-    { token: 'BAT', base: 'ETH' },
-    { token: 'BCAP', base: 'ETH' },
-    { token: 'BNT', base: 'ETH' },
-    { token: 'CFI', base: 'ETH' },
-    { token: 'CVC', base: 'ETH' },
-    { token: 'DGD', base: 'ETH' },
-    { token: 'DICE', base: 'ETH' },
-    { token: 'E4ROW', base: 'ETH' },
-    { token: 'EDG', base: 'ETH' },
-    { token: 'EMV', base: 'ETH' },
-    { token: 'EOS', base: 'ETH' },
-    { token: 'ETB', base: 'ETH' },
-    { token: 'FUCK', base: 'ETH' },
-    { token: 'FUN', base: 'ETH' },
-    { token: 'GNO', base: 'ETH' },
-    { token: 'GOOD', base: 'ETH' },
-    { token: 'GUP', base: 'ETH' },
-    { token: 'HMQ', base: 'ETH' },
-    { token: 'ICN', base: 'ETH' },
-    { token: 'ICE', base: 'ETH' },
-    { token: 'LNK', base: 'ETH' },
-    { token: 'LUN', base: 'ETH' },
-    { token: 'MCAP', base: 'ETH' },
-    { token: 'MBRS', base: 'ETH' },
-    { token: 'MKR', base: 'ETH' },
-    { token: 'MLN', base: 'ETH' },
-    { token: 'NET', base: 'ETH' },
-    { token: 'NEWB', base: 'ETH' },
-    { token: 'NMR', base: 'ETH' },
-    { token: 'NXC', base: 'ETH' },
-    { token: 'OMG', base: 'ETH' },
-    { token: 'PAY', base: 'ETH' },
-    { token: 'PPT', base: 'ETH' },
     { token: 'PLU', base: 'ETH' },
-    { token: 'PTOY', base: 'ETH' },
-    { token: 'QRL', base: 'ETH' },
+    { token: '1ST', base: 'ETH' },
+    { token: 'EDG', base: 'ETH' },
+    { token: 'ARC', base: 'ETH' },
+    { token: 'GNTW', base: 'ETH' },
+    { token: 'GNTM', base: 'ETH' },
+    { token: 'NXC', base: 'ETH' },
+    { token: 'ICN', base: 'ETH' },
     { token: 'REP', base: 'ETH' },
-    { token: 'RLC', base: 'ETH' },
-    { token: 'ROUND', base: 'ETH' },
-    { token: 'SKIN', base: 'ETH' },
+    { token: 'MLN', base: 'ETH' },
     { token: 'SNGLS', base: 'ETH' },
-    { token: 'SNT', base: 'ETH' },
-    { token: 'STORJ', base: 'ETH' },
+    { token: 'MKR', base: 'ETH' },
+    { token: 'DGD', base: 'ETH' },
     { token: 'SWT', base: 'ETH' },
-    { token: 'TAAS', base: 'ETH' },
-    { token: 'TIME', base: 'ETH' },
-    { token: 'TKN', base: 'ETH' },
-    { token: 'TRST', base: 'ETH' },
-    { token: 'VERI', base: 'ETH' },
     { token: 'VSL', base: 'ETH' },
-    { token: 'WINGS', base: 'ETH' },
+    { token: 'HKG', base: 'ETH' },
     { token: 'XAUR', base: 'ETH' },
+    { token: 'TIME', base: 'ETH' },
+    { token: 'GUP', base: 'ETH' },
+    { token: 'RLC', base: 'ETH' },
+    { token: 'ETB', base: 'ETH' },
+    { token: 'ETB-OLD', base: 'ETH' },
+    { token: 'TRST', base: 'ETH' },
+    { token: 'DICE', base: 'ETH' },
+    { token: 'TAAS', base: 'ETH' },
+    { token: 'GNO', base: 'ETH' },
+    { token: 'WINGS', base: 'ETH' },
+    { token: 'LUN', base: 'ETH' },
+    { token: 'TKN', base: 'ETH' },
+    { token: 'HMQ', base: 'ETH' },
+    { token: 'ANT', base: 'ETH' },
+    { token: 'BCAP', base: 'ETH' },
+    { token: 'BAT', base: 'ETH' },
+    { token: 'MYST', base: 'ETH' },
+    { token: 'VSM', base: 'ETH' },
+    { token: 'CFI', base: 'ETH' },
+    { token: 'VERI', base: 'ETH' },
+    { token: 'MGO', base: 'ETH' },
+    { token: 'PTOY', base: 'ETH' },
+    { token: 'BNT', base: 'ETH' },
+    { token: 'QRL', base: 'ETH' },
+    { token: 'GOOD', base: 'ETH' },
+    { token: 'SNT', base: 'ETH' },
+    { token: 'SONM', base: 'ETH' },
+    { token: 'NMR', base: 'ETH' },
+    { token: 'MCAP', base: 'ETH' },
+    { token: 'PAY', base: 'ETH' },
+    { token: 'ICE', base: 'ETH' },
+    { token: 'PPT', base: 'ETH' },
+    { token: 'FUNOLD', base: 'ETH' },
+    { token: 'FUN', base: 'ETH' },
+    { token: 'ADT', base: 'ETH' },
+    { token: 'E4ROW', base: 'ETH' },
+    { token: 'STORJ', base: 'ETH' },
+    { token: 'NET', base: 'ETH' },
+    { token: 'EOS', base: 'ETH' },
+    { token: 'ADX', base: 'ETH' },
+    { token: 'DRP', base: 'ETH' },
+    { token: 'BET', base: 'ETH' },
+    { token: 'PLBT', base: 'ETH' },
+    { token: 'OMG', base: 'ETH' },
+    { token: 'BNB', base: 'ETH' },
+    { token: 'NEWB', base: 'ETH' },
     { token: 'XRL', base: 'ETH' },
-    { token: 'AMIS', base: 'ETH' },
+    { token: 'MBRS', base: 'ETH' },
+    { token: 'MTL', base: 'ETH' },
+    { token: 'FUCK', base: 'ETH' },
+    { token: 'NXX', base: 'ETH' },
+    { token: 'BTH', base: 'ETH' },
+    { token: 'PLR', base: 'ETH' },
+    { token: 'CVC', base: 'ETH' },
+    { token: 'MAYY', base: 'ETH' },
+    { token: 'MAYN', base: 'ETH' },
+    { token: 'LNK', base: 'ETH' },
+    { token: 'SKIN', base: 'ETH' },
+    { token: 'DGT', base: 'ETH' },
+    { token: 'ECN', base: 'ETH' },
+    // { token: 'TME', base: 'ETH' },
+    { token: 'BCD', base: 'ETH' },
+    { token: 'DEX', base: 'ETH' },
+    { token: 'TIX', base: 'ETH' },
+    { token: 'CDT', base: 'ETH' },
+    { token: 'IXT', base: 'ETH' },
+    { token: 'AIR', base: 'ETH' },
+    { token: 'CAT', base: 'ETH' },
+    { token: 'OAX', base: 'ETH' },
+    { token: 'CLRT', base: 'ETH' },
+    { token: 'MSP', base: 'ETH' },
+    { token: 'BAS', base: 'ETH' },
+    { token: 'KTN', base: 'ETH' },
+    // { token: 'JET', base: 'ETH' },
+    { token: 'BNC', base: 'ETH' },
+    { token: 'DNT', base: 'ETH' },
+    { token: 'CTR', base: 'ETH' },
+    { token: 'BRAT', base: 'ETH' },
+    { token: 'BQX', base: 'ETH' },
+    { token: 'STX', base: 'ETH' },
+    { token: 'FYN', base: 'ETH' },
+    { token: 'CREDO', base: 'ETH' },
+    { token: 'NIH', base: 'ETH' },
+    { token: 'QAU', base: 'ETH' },
+    { token: 'DENT', base: 'ETH' },
+    { token: 'SHOUC', base: 'ETH' },
+    { token: 'GUNS', base: 'ETH' },
+    { token: 'DEL', base: 'ETH' },
+    { token: 'SAN', base: 'ETH' },
+    { token: 'IND', base: 'ETH' },
+    { token: 'ETH', base: 'USD.DC' },
+    { token: 'ETH', base: 'BTC.DC' },
   ],
 };
+
 },{}],3:[function(require,module,exports){
 /* eslint-env browser */
 
 module.exports = {
   homeURL: 'http://localhost:8080',
-  contractEtheRoox: 'smart_contract/etheroox.sol',
+  contractEtherDelta: 'smart_contract/etherdelta.sol',
   contractToken: 'smart_contract/token.sol',
   contractReserveToken: 'smart_contract/reservetoken.sol',
-  contractEtheRooxAddrs: [
+  contractEtherDeltaAddrs: [
+    { addr: '0x228344536a03c0910fb8be9c2755c1a0ba6f89e1', info: 'Deployed 02/09/2017' },
+    { addr: '0xf80cd360e96fa96b8b7d9e95d5a7911ac5f09ec2', info: 'Deployed 10/24/2016' },
+    { addr: '0xcdd152384c55dd4e5b5a3128cc90e0d9311570de', info: 'Deployed 10/06/2016' },
+    { addr: '0x24b0ed7ba8d6d969bfe8409b4e6aeee3a40f8855', info: 'Deployed 08/03/2016' },
+    { addr: '0x91739eeb4f3600442ea6a42c43f7fa8cd8f78a3d', info: 'Deployed 06/30/2016' },
     { addr: '0x0000000000000000000000000000000000000000', info: 'Zero contract' },
   ],
   ethTestnet: 'ropsten',
@@ -1367,11 +1423,11 @@ module.exports = {
   gasOrder: 250000,
   ordersOnchain: false,
   apiServer: 'http://localhost:3000',
-  userCookie: 'EtheRoox',
-  eventsCacheCookie: 'EtheRoox_eventsCache',
-  deadOrdersCacheCookie: 'EtheRoox_deadOrdersCache',
-  ordersCacheCookie: 'EtheRoox_ordersCache',
-  etherscanAPIKey: 'SCYVG55I4EYS4JJ82NYMV87MGDGVNNZJ49',
+  userCookie: 'EtherDelta',
+  eventsCacheCookie: 'EtherDelta_eventsCache',
+  deadOrdersCacheCookie: 'EtherDelta_deadOrdersCache',
+  ordersCacheCookie: 'EtherDelta_ordersCache',
+  etherscanAPIKey: 'GCGR1C9I17TYIRNYUDDEIJH1K5BRPH4UDE',
   tokens: [
     { addr: '0x0000000000000000000000000000000000000000', name: 'ETH', decimals: 18 },
     { addr: '0x40aade55175aaeed9c88612c3ed2ff91d8943964', name: '1ST', decimals: 18 },
@@ -1413,12 +1469,13 @@ require('datejs');
 const async = typeof window === 'undefined' ? require('async') : require('async/dist/async.min.js');
 const translations = require('./translations.js');
 
-function EtheRoox() {
+function EtherDelta() {
   this.q = async.queue((task, callback) => {
     task(callback);
   }, 1);
   this.addrs = undefined;
   this.pks = undefined;
+  this.addrKinds = {};
   this.selectedAccount = 0;
   this.selectedToken = undefined;
   this.selectedBase = undefined;
@@ -1427,7 +1484,7 @@ function EtheRoox() {
   this.nonce = undefined;
   this.price = undefined;
   this.priceUpdated = Date.now();
-  this.contractEtheRoox = undefined;
+  this.contractEtherDelta = undefined;
   this.contractToken = undefined;
   this.eventsCache = {};
   this.publishingOrders = false;
@@ -1436,18 +1493,22 @@ function EtheRoox() {
   this.language = 'en';
   this.minOrderSize = 0.01;
   this.messageToSend = undefined;
-  this.blockTimeSnapshot = { blockNumber: 3154928, date: new Date('Feb-10-2017 01:40:47') }; // default snapshot
   this.translator = undefined;
-  this.secondsPerBlock = 14;
+  this.secondsPerBlock = 15;
   this.usersWithOrdersToUpdate = {};
   this.apiServerNonce = undefined;
   this.ordersResultByPair = { orders: [], blockNumber: 0 };
   this.topOrdersResult = { orders: [], blockNumber: 0 };
   this.selectedContract = undefined;
+  this.returnTicker = {};
   this.web3 = undefined;
-  this.startEtheRoox();
+  this.daysOfData = 7;
+  this.minGas = 0.005;
+  window.addEventListener('load', () => {
+    this.startEtherDelta();
+  });
 }
-EtheRoox.prototype.ejs = function ejs(url, element, data) {
+EtherDelta.prototype.ejs = function ejs(url, element, data) {
   if ($(`#${element}`).length) {
     new EJS({ url }).update(element, data);
     this.translator.lang(this.language);
@@ -1455,43 +1516,45 @@ EtheRoox.prototype.ejs = function ejs(url, element, data) {
     console.log(`Failed to render template because ${element} does not exist.`);
   }
 };
-EtheRoox.prototype.alertInfo = function alertInfo(message) {
+if (!alertify.dialogError) {
+  alertify.dialog('dialogError', function factory() { // eslint-disable-line prefer-arrow-callback
+    const header = '<span class="fa fa-times-circle fa-2x" style="vertical-align: middle; color: #ff0000;"></span> Error';
+    return {
+      build() {
+        this.setHeader(header);
+      },
+    };
+  }, true, 'alert');
+}
+if (!alertify.dialogInfo) {
+  alertify.dialog('dialogInfo', function factory() { // eslint-disable-line prefer-arrow-callback
+    const header = '<span class="fa fa-info-circle fa-2x" style="vertical-align: middle; color: #0000ff;"></span>';
+    return {
+      build() {
+        this.setHeader(header);
+      },
+    };
+  }, true, 'alert');
+}
+EtherDelta.prototype.dialogInfo = function dialogInfo(message) {
   console.log(message);
-  alertify.message(message);
+  alertify.dialogInfo(message);
   ga('send', {
     hitType: 'event',
-    eventCategory: 'Alert',
+    eventCategory: 'Dialog',
     eventAction: 'Info',
   });
 };
-EtheRoox.prototype.alertDialog = function alertDialog(message) {
+EtherDelta.prototype.dialogError = function dialogError(message) {
   console.log(message);
-  alertify.alert('Alert', message, () => {});
+  alertify.dialogError(message);
   ga('send', {
     hitType: 'event',
-    eventCategory: 'Alert',
-    eventAction: 'Dialog',
-  });
-};
-EtheRoox.prototype.alertWarning = function alertWarning(message) {
-  console.log(message);
-  alertify.warning(message);
-  ga('send', {
-    hitType: 'event',
-    eventCategory: 'Alert',
-    eventAction: 'Warning',
-  });
-};
-EtheRoox.prototype.alertError = function alertError(message) {
-  console.log(message);
-  alertify.alert('Error', message, () => {});
-  ga('send', {
-    hitType: 'event',
-    eventCategory: 'Alert',
+    eventCategory: 'Dialog',
     eventAction: 'Error',
   });
 };
-EtheRoox.prototype.alertSuccess = function alertSuccess(message) {
+EtherDelta.prototype.alertSuccess = function alertSuccess(message) {
   console.log(message);
   alertify.success(message);
   ga('send', {
@@ -1500,64 +1563,50 @@ EtheRoox.prototype.alertSuccess = function alertSuccess(message) {
     eventAction: 'Success',
   });
 };
-EtheRoox.prototype.txError = function txError(err) {
+EtherDelta.prototype.txError = function txError(err) {
   console.log('Error', err);
   utility.getBalance(this.web3, this.addrs[this.selectedAccount], (errBalance, resultBalance) => {
     const balance = utility.weiToEth(resultBalance);
-    if (this.connection.connection === 'RPC') {
-      if (balance < 0.005) {
-        this.alertError(
-          `You tried to send an Ethereum transaction but there was an error. Your wallet's ETH balance (${balance} ETH) is not enough to cover the gas cost (Ethereum network fee). EtheRoox sends 0.005 ETH with each transaction. This is an overestimate and the excess will get refunded to you. It's a good idea to send more than 0.005 so you can pay for not only this transaction, but also future transactions you do on EtheRoox. The gas has to come directly from your Wallet (EtheRoox has no physical way of paying gas from your deposited ETH).`);
+    if (this.connection.connection === 'RPC' && this.addrKinds[this.selectedAccount] !== 'MetaMask') {
+      if (this.pks[this.selectedAccount]) {
+        this.dialogError('You are using an EtherDelta account that has a private key attached, but you\'re connected to MetaMask. You should disable MetaMask from Chrome\'s Window -> Extensions menu (don\'t worry, this won\'t lose your MetaMask data), then refresh EtherDelta.');
         ga('send', {
           hitType: 'event',
           eventCategory: 'Error',
           eventAction: 'Ethereum - transaction error',
         });
       } else {
-        this.alertError(
-          'You tried to send an Ethereum transaction but there was an error. Make sure the account you have selected in the account dropdown (upper right) matches the one you have selected in MetaMask.');
+        this.dialogError('You are connected to MetaMask, but you are either using a non-MetaMask account, or you are not logged into the MetaMask account you have selected. Check this in MetaMask, then refresh and try again.');
         ga('send', {
           hitType: 'event',
           eventCategory: 'Error',
           eventAction: 'Ethereum - transaction error',
         });
       }
-    } else if (this.connection.connection === 'Proxy') {
-      if (this.pks[this.selectedAccount] &&
-      !utility.verifyPrivateKey(this.addrs[this.selectedAccount], this.pks[this.selectedAccount])) {
-        this.alertError('You tried to send an Ethereum transaction but there was an error. The private key for your account is invalid. Please re-import your account with a valid private key and try again.');
-        ga('send', {
-          hitType: 'event',
-          eventCategory: 'Error',
-          eventAction: 'Ethereum - transaction error',
-        });
-      } else if (!this.pks[this.selectedAccount]) {
-        this.alertError('You tried to send an Ethereum transaction but there was an error. Your account has no private key. Please re-import your account with a valid private key and try again.');
-        ga('send', {
-          hitType: 'event',
-          eventCategory: 'Error',
-          eventAction: 'Ethereum - transaction error',
-        });
-      } else if (balance < 0.005) {
-        this.alertError(
-          `You tried to send an Ethereum transaction but there was an error. Your wallet's ETH balance (${balance} ETH) is not enough to cover the gas cost (Ethereum network fee). EtheRoox sends 0.005 ETH with each transaction. This is an overestimate and the excess will get refunded to you. It's a good idea to send more than 0.005 so you can pay for not only this transaction, but also future transactions you do on EtheRoox. The gas has to come directly from your Wallet (EtheRoox has no physical way of paying gas from your deposited ETH).`);
-        ga('send', {
-          hitType: 'event',
-          eventCategory: 'Error',
-          eventAction: 'Ethereum - transaction error',
-        });
-      } else {
-        this.alertError(
-          "You tried to send an Ethereum transaction but there was an error. Make sure you have enough ETH in your wallet to cover the gas cost (Ethereum network fee). EtheRoox sends 0.005 ETH with each transaction. This is an overestimate and the excess will get refunded to you. It's a good idea to send more than 0.005 so you can pay for not only this transaction, but also future transactions you do on EtheRoox. The gas has to come directly from your Wallet (EtheRoox has no physical way of paying gas from your deposited ETH).");
-        ga('send', {
-          hitType: 'event',
-          eventCategory: 'Error',
-          eventAction: 'Ethereum - transaction error',
-        });
-      }
+    } else if (this.connection.connection === 'Proxy' && !this.pks[this.selectedAccount]) {
+      this.dialogError('You are using an EtherDelta account that doesn\'t have a private key attached. Perhaps you created the account using MetaMask, in which case you should make sure MetaMask is enabled and logged in to this account, then refresh EtherDelta. Or, if you have the private key, you can choose "Import account" from the accounts dropdown (upper right) to re-import the account with its private key.');
+      ga('send', {
+        hitType: 'event',
+        eventCategory: 'Error',
+        eventAction: 'Ethereum - transaction error',
+      });
+    } else if (this.connection.connection === 'Proxy' && !utility.verifyPrivateKey(this.addrs[this.selectedAccount], this.pks[this.selectedAccount])) {
+      this.dialogError('You are using an EtherDelta account that has an invalid private key.');
+      ga('send', {
+        hitType: 'event',
+        eventCategory: 'Error',
+        eventAction: 'Ethereum - transaction error',
+      });
+    } else if (this.connection.connection === 'Proxy' && balance < 2 * this.minGas) {
+      this.dialogError(
+        `Your wallet's ETH balance (${balance} ETH) is not enough to cover the gas cost (Ethereum network fee). EtherDelta sends ${this.minGas} ETH with each transaction. This is an overestimate and the excess will get refunded to you. It's a good idea to send more than ${this.minGas} so you can pay for not only this transaction, but also future transactions you do on EtherDelta. The gas has to come directly from your Wallet (EtherDelta has no physical way of paying gas from your deposited ETH).`);
+      ga('send', {
+        hitType: 'event',
+        eventCategory: 'Error',
+        eventAction: 'Ethereum - transaction error',
+      });
     } else {
-      this.alertError(
-        "You tried to send an Ethereum transaction but there was an error. Make sure you have enough ETH in your wallet to cover the gas cost (Ethereum network fee). EtheRoox sends 0.005 ETH with each transaction. This is an overestimate and the excess will get refunded to you. It's a good idea to send more than 0.005 so you can pay for not only this transaction, but also future transactions you do on EtheRoox. The gas has to come directly from your Wallet (EtheRoox has no physical way of paying gas from your deposited ETH).");
+      this.dialogError('You tried to send an Ethereum transaction but there was an error.');
       ga('send', {
         hitType: 'event',
         eventCategory: 'Error',
@@ -1566,7 +1615,7 @@ EtheRoox.prototype.txError = function txError(err) {
     }
   });
 };
-EtheRoox.prototype.alertTxResult = function alertTxResult(err, txsIn) {
+EtherDelta.prototype.alertTxResult = function alertTxResult(err, txsIn) {
   const txs = Array.isArray(txsIn) ? txsIn : [txsIn];
   if (err) {
     this.txError(err);
@@ -1577,7 +1626,7 @@ EtheRoox.prototype.alertTxResult = function alertTxResult(err, txsIn) {
         tx.txHash &&
         tx.txHash !== '0x0000000000000000000000000000000000000000000000000000000000000000'
       ) {
-        this.alertDialog(
+        this.dialogInfo(
           `You just created an Ethereum transaction. Track its progress: <a href="https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/tx/${tx.txHash}" target="_blank">${tx.txHash}</a>.`);
       } else {
         this.txError();
@@ -1588,7 +1637,7 @@ EtheRoox.prototype.alertTxResult = function alertTxResult(err, txsIn) {
         txs.forEach((tx) => {
           message += `<a href="https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/tx/${tx.txHash}" target="_blank">${tx.txHash}</a><br />`;
         });
-        this.alertDialog(message);
+        this.dialogInfo(message);
       } else {
         this.txError();
       }
@@ -1600,28 +1649,16 @@ EtheRoox.prototype.alertTxResult = function alertTxResult(err, txsIn) {
     });
   }
 };
-EtheRoox.prototype.enableTooltipsAndPopovers = function enableTooltipsAndPopovers() {
+EtherDelta.prototype.enableTooltipsAndPopovers = function enableTooltipsAndPopovers() {
   $('[data-toggle="popover"]').popover({ trigger: 'hover' });
   $('[data-toggle="tooltip"]').tooltip();
 };
-EtheRoox.prototype.logout = function logout() {
-  this.addrs = [this.config.ethAddr];
-  this.pks = [this.config.ethAddrPrivateKey];
-  this.selectedAccount = 0;
-  this.nonce = undefined;
-  this.refresh(() => {}, true, true);
-  ga('send', {
-    hitType: 'event',
-    eventCategory: 'Action',
-    eventAction: 'Logout',
-  });
-};
-EtheRoox.prototype.createAccount = function createAccount() {
+EtherDelta.prototype.createAccount = function createAccount() {
   const newAccount = utility.createAccount();
   const addr = newAccount.address;
   const pk = newAccount.privateKey;
   this.addAccount(addr, pk);
-  this.alertDialog(
+  this.dialogInfo(
     `You just created an Ethereum account: ${addr}<br /><br />Please BACKUP the private key for this account: ${pk}`);
   ga('send', {
     hitType: 'event',
@@ -1629,7 +1666,18 @@ EtheRoox.prototype.createAccount = function createAccount() {
     eventAction: 'Create Account',
   });
 };
-EtheRoox.prototype.deleteAccount = function deleteAccount() {
+EtherDelta.prototype.deleteAccount = function deleteAccount() {
+  if (this.pks[this.selectedAccount]) {
+    const addr = this.addrs[this.selectedAccount];
+    const pk = this.pks[this.selectedAccount];
+    this.dialogInfo(
+      `You are about to remove an Ethereum account: ${addr}<br /><br />If it has funds, please BACKUP the private key for this account: ${pk}`);
+    ga('send', {
+      hitType: 'event',
+      eventCategory: 'Action',
+      eventAction: 'Show private key and delete',
+    });
+  }
   this.addrs.splice(this.selectedAccount, 1);
   this.pks.splice(this.selectedAccount, 1);
   this.selectedAccount = 0;
@@ -1641,7 +1689,7 @@ EtheRoox.prototype.deleteAccount = function deleteAccount() {
     eventAction: 'Delete Account',
   });
 };
-EtheRoox.prototype.selectAccount = function selectAccount(i) {
+EtherDelta.prototype.selectAccount = function selectAccount(i) {
   this.selectedAccount = i;
   this.nonce = undefined;
   this.refresh(() => {}, true, true);
@@ -1651,8 +1699,8 @@ EtheRoox.prototype.selectAccount = function selectAccount(i) {
     eventAction: 'Select Account',
   });
 };
-EtheRoox.prototype.addAccount = function addAccount(newAddr, newPk) {
-  let addr = newAddr;
+EtherDelta.prototype.addAccount = function addAccount(newAddr, newPk) {
+  let addr = newAddr.toLowerCase();
   let pk = newPk;
   if (addr.slice(0, 2) !== '0x') addr = `0x${addr}`;
   if (pk.slice(0, 2) === '0x') pk = pk.slice(2);
@@ -1664,14 +1712,14 @@ EtheRoox.prototype.addAccount = function addAccount(newAddr, newPk) {
     verifyPrivateKey = false;
   }
   if (pk && !verifyPrivateKey) {
-    this.alertError(`For account ${addr}, the private key is invalid.`);
+    this.dialogError(`For account ${addr}, the private key is invalid.`);
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
       eventAction: 'Add Account - invalid private key',
     });
   } else if (!this.web3.isAddress(addr)) {
-    this.alertError(`The specified address, ${addr}, is invalid.`);
+    this.dialogError(`The specified address, ${addr}, is invalid.`);
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
@@ -1690,11 +1738,11 @@ EtheRoox.prototype.addAccount = function addAccount(newAddr, newPk) {
     });
   }
 };
-EtheRoox.prototype.showPrivateKey = function showPrivateKey() {
+EtherDelta.prototype.showPrivateKey = function showPrivateKey() {
   const addr = this.addrs[this.selectedAccount];
   const pk = this.pks[this.selectedAccount];
   if (!pk) {
-    this.alertError(
+    this.dialogError(
       `For account ${addr}, there is no private key available. You can still transact if you are connected to Ethereum and the account is unlocked.`);
     ga('send', {
       hitType: 'event',
@@ -1702,7 +1750,7 @@ EtheRoox.prototype.showPrivateKey = function showPrivateKey() {
       eventAction: 'Show private key - unavailable',
     });
   } else {
-    this.alertDialog(`For account ${addr}, the private key is ${pk}.`);
+    this.dialogInfo(`For account ${addr}, the private key is ${pk}.`);
     ga('send', {
       hitType: 'event',
       eventCategory: 'Action',
@@ -1710,26 +1758,29 @@ EtheRoox.prototype.showPrivateKey = function showPrivateKey() {
     });
   }
 };
-EtheRoox.prototype.addressLink = function addressLink(address) {
+EtherDelta.prototype.addressLink = function addressLink(address) {
   return `https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/address/${address}`;
 };
-EtheRoox.prototype.contractAddr = function contractAddr(addr) {
-  this.config.contractEtheRooxAddr = addr;
+EtherDelta.prototype.contractAddr = function contractAddr(addr) {
+  this.config.contractEtherDeltaAddr = addr;
   this.displayConnectionDescription(() => {});
   this.loading(() => {});
   this.refresh(() => {}, true, true);
 };
-EtheRoox.prototype.displayAccounts = function displayAccounts(callback) {
+EtherDelta.prototype.displayAccounts = function displayAccounts(callback) {
   if (this.addrs.length <= 0 || this.addrs.length !== this.pks.length) {
     this.addrs = [this.config.ethAddr];
     this.pks = [this.config.ethAddrPrivateKey];
     this.selectedAccount = 0;
   }
   async.map(
-    this.addrs,
-    (addr, callbackMap) => {
+    this.addrs.map((x, i) => i),
+    (i, callbackMap) => {
+      const addr = this.addrs[i];
+      const pk = this.pks[i] ? true : false; // eslint-disable-line no-unneeded-ternary
+      const kind = this.addrKinds[i];
       utility.getBalance(this.web3, addr, (err, balance) => {
-        callbackMap(null, { addr, balance });
+        callbackMap(null, { addr, balance, pk, kind });
       });
     },
     (err, addresses) => {
@@ -1738,11 +1789,12 @@ EtheRoox.prototype.displayAccounts = function displayAccounts(callback) {
         addresses,
         selectedAccount: this.selectedAccount,
         addressLink,
+        connection: this.connection.connection,
       });
       callback();
     });
 };
-EtheRoox.prototype.displayLanguages = function displayLanguages(callback) {
+EtherDelta.prototype.displayLanguages = function displayLanguages(callback) {
   const languages = Object.keys(translations.trades);
   this.ejs(`${this.config.homeURL}/templates/languages.ejs`, 'languages', {
     languages,
@@ -1750,7 +1802,7 @@ EtheRoox.prototype.displayLanguages = function displayLanguages(callback) {
   });
   callback();
 };
-EtheRoox.prototype.selectLanguage = function selectLanguage(newLanguage) {
+EtherDelta.prototype.selectLanguage = function selectLanguage(newLanguage) {
   this.language = newLanguage;
   window.title = translations.title[this.language];
   this.translator.lang(this.language);
@@ -1763,20 +1815,20 @@ EtheRoox.prototype.selectLanguage = function selectLanguage(newLanguage) {
     eventLabel: newLanguage,
   });
 };
-EtheRoox.prototype.loadEvents = function loadEvents(callback) {
+EtherDelta.prototype.loadEvents = function loadEvents(callback) {
   let lastBlock = 0;
   Object.keys(this.eventsCache).forEach((id) => {
     const event = this.eventsCache[id];
-    if (event.blockNumber > lastBlock && event.address === this.config.contractEtheRooxAddr) {
+    if (event.blockNumber > lastBlock && event.address === this.config.contractEtherDeltaAddr) {
       lastBlock = event.blockNumber;
     }
   });
+  console.log('lastBlock', lastBlock);
   utility.getURL(`${this.config.apiServer}/events/${this.apiServerNonce}/${lastBlock}`, (err, result) => {
-    if (!err) {
+    if (!err && result !== 'error') {
       try {
         const res = JSON.parse(result);
         const blockNumber = res.blockNumber;
-        this.blockTimeSnapshot = { blockNumber, date: new Date() };
         const events = res.events;
         let newEvents = 0;
         Object.values(events).forEach((event) => {
@@ -1797,15 +1849,25 @@ EtheRoox.prototype.loadEvents = function loadEvents(callback) {
             }
           }
         });
+        Object.keys(this.eventsCache).forEach((key) => {
+          if (this.eventsCache[key].blockNumber <
+          blockNumber - ((86400 * this.daysOfData) / this.secondsPerBlock)) {
+            delete this.eventsCache[key];
+          }
+        });
         callback(null, newEvents);
       } catch (errGet) {
         console.log('Events log has not changed since last refresh.');
         callback(null, 0);
       }
+    } else {
+      this.apiServerNonce = Math.random().toString().slice(2) +
+        Math.random().toString().slice(2);
+      callback(null, 0);
     }
   });
 };
-EtheRoox.prototype.displayMyTransactions =
+EtherDelta.prototype.displayMyTransactions =
 function displayMyTransactions(ordersIn, blockNumber, callback) {
   // only look at orders for the selected token and base
   let orders = ordersIn.filter(
@@ -1820,7 +1882,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
   orders = orders.filter(
     order => this.addrs[this.selectedAccount].toLowerCase() === order.order.user.toLowerCase());
   // filter only orders that match the smart contract address
-  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtheRooxAddr);
+  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
   // final order filtering and sorting
   const buyOrders = orders.filter(x => x.amount > 0);
   const sellOrders = orders.filter(x => x.amount < 0);
@@ -1833,7 +1895,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
     try {
       if (
         event.event === 'Trade' &&
-        event.address === this.config.contractEtheRooxAddr &&
+        event.address === this.config.contractEtherDeltaAddr &&
         (event.args.get.toLowerCase() === this.addrs[this.selectedAccount].toLowerCase() ||
           event.args.give.toLowerCase() === this.addrs[this.selectedAccount].toLowerCase())
       ) {
@@ -1881,7 +1943,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
         }
       } else if (
         event.event === 'Deposit' &&
-        event.address === this.config.contractEtheRooxAddr &&
+        event.address === this.config.contractEtherDeltaAddr &&
         (
           event.args.token === this.selectedBase.addr ||
           event.args.token === this.selectedToken.addr
@@ -1903,7 +1965,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
         });
       } else if (
         event.event === 'Withdraw' &&
-        event.address === this.config.contractEtheRooxAddr &&
+        event.address === this.config.contractEtherDeltaAddr &&
         (
           event.args.token === this.selectedBase.addr ||
           event.args.token === this.selectedToken.addr
@@ -1965,12 +2027,34 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
       callback();
     });
 };
-EtheRoox.prototype.displayVolumes = function displayVolumes(orders, blockNumber, callback) {
+EtherDelta.prototype.isInCross = function isInCross(priceIn, kind) {
+  const price = new BigNumber(priceIn);
+  if (price === undefined || price <= 0) return undefined;
+  const orders = this.ordersResultByPair.orders;
+  // remove orders below the min order limit
+  const ordersFiltered = orders.filter(order =>
+    Number(order.ethAvailableVolume).toFixed(3) >= this.minOrderSize &&
+    Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize)
+  .filter(
+    order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
+  // final order filtering and sorting
+  const buyOrders = ordersFiltered.filter(x => x.amount > 0);
+  const sellOrders = ordersFiltered.filter(x => x.amount < 0);
+  sellOrders.sort((a, b) => b.price - a.price || b.id - a.id);
+  buyOrders.sort((a, b) => b.price - a.price || a.id - b.id);
+  const bid = buyOrders.length > 0 ? buyOrders[0].price : undefined;
+  const ask = sellOrders.length > 0 ? sellOrders[sellOrders.length - 1].price : undefined;
+  if (kind === 'buy' && ask && price > ask * 1.5) {
+    return ask;
+  } if (kind === 'sell' && bid && price < bid * 0.5) {
+    return bid;
+  }
+  return undefined;
+};
+EtherDelta.prototype.displayVolumes = function displayVolumes(
+  orders, returnTicker, blockNumber, callback) {
   let tokenVolumes = {};
   let pairVolumes = {};
-  const timeFrames = [86400 * 1000 * 7, 86400 * 1000 * 1];
-  const mainBases = ['DUSD', 'ETH']; // in order of priority
-  const now = new Date();
   // the default pairs
   for (let i = 0; i < this.config.pairs.length; i += 1) {
     const token = this.getToken(this.config.pairs[i].token);
@@ -1981,86 +2065,49 @@ EtheRoox.prototype.displayVolumes = function displayVolumes(orders, blockNumber,
         pairVolumes[pair] = {
           token,
           base,
-          volumes: Array(timeFrames.length).fill(0),
-          ethVolumes: Array(timeFrames.length).fill(0),
+          volume: 0,
+          ethVolume: 0,
         };
       }
     }
   }
   // get trading volume
-  const events = Object.values(this.eventsCache);
-  events.forEach((event) => {
-    if (event.event === 'Trade' && event.address === this.config.contractEtheRooxAddr) {
-      const tokenGet = this.getToken(event.args.tokenGet);
-      const tokenGive = this.getToken(event.args.tokenGive);
-      const amountGet = event.args.amountGet;
-      const amountGive = event.args.amountGive;
-      if (tokenGet && tokenGive) {
-        if (!tokenVolumes[tokenGet.name]) {
-          tokenVolumes[tokenGet.name] = {
-            token: tokenGet,
-            volumes: Array(timeFrames.length).fill(0),
-            ethVolumes: Array(timeFrames.length).fill(0),
-          };
-        }
-        if (!tokenVolumes[tokenGive.name]) {
-          tokenVolumes[tokenGive.name] = {
-            token: tokenGive,
-            volumes: Array(timeFrames.length).fill(0),
-            ethVolumes: Array(timeFrames.length).fill(0),
-          };
-        }
-        let token;
-        let base;
-        let volume = 0;
-        let ethVolume;
-        mainBases.some((mainBase) => {
-          if (tokenGive.name === mainBase) {
-            token = tokenGet;
-            base = tokenGive;
-            volume = amountGet;
-            return true;
-          } else if (tokenGet.name === mainBase) {
-            token = tokenGive;
-            base = tokenGet;
-            volume = amountGive;
-            return true;
-          }
-          return false;
-        });
-        if (!token && !base && tokenGive.name >= tokenGet.name) {
-          token = tokenGive;
-          base = tokenGet;
-          volume = amountGive;
-        } else if (!token && !base && tokenGive.name < tokenGet.name) {
-          token = tokenGet;
-          base = tokenGive;
-          volume = amountGet;
-        }
-        if (tokenGive.name === 'ETH') ethVolume = amountGive;
-        if (tokenGet.name === 'ETH') ethVolume = amountGet;
-        const pair = `${token.name}/${base.name}`;
-        if (!pairVolumes[pair]) {
-          pairVolumes[pair] = {
-            token,
-            base,
-            volumes: Array(timeFrames.length).fill(0),
-            ethVolumes: Array(timeFrames.length).fill(0),
-          };
-        }
-        for (let i = 0; i < timeFrames.length; i += 1) {
-          const timeFrame = timeFrames[i];
-          if (now - this.blockTime(event.blockNumber) < timeFrame) {
-            tokenVolumes[tokenGet.name].volumes[i] += Number(amountGet);
-            tokenVolumes[tokenGive.name].volumes[i] += Number(amountGive);
-            pairVolumes[pair].volumes[i] += Number(volume);
-            if (ethVolume) {
-              tokenVolumes[tokenGet.name].ethVolumes[i] += Number(ethVolume);
-              tokenVolumes[tokenGive.name].ethVolumes[i] += Number(ethVolume);
-              pairVolumes[pair].ethVolumes[i] += Number(ethVolume);
-            }
-          }
-        }
+  Object.keys(this.returnTicker).forEach((returnKey) => {
+    const ret = this.returnTicker[returnKey];
+    const spl = returnKey.split('_');
+    const A = spl[0];
+    const B = spl[1];
+    const pair = `${B}/${A}`;
+    // console.log(pair)
+    if (pairVolumes[pair]) {
+      // console.log(pair, ret)
+      pairVolumes[pair].volume = Number(ret.quoteVolume);
+      pairVolumes[pair].ethVolume = Number(ret.baseVolume);
+    }
+    const tokenA = this.getToken(A);
+    const tokenB = this.getToken(B);
+    if (tokenA) {
+      if (tokenVolumes[A]) {
+        tokenVolumes[A].volume += Number(ret.baseVolume);
+        tokenVolumes[A].ethVolume += Number(ret.baseVolume);
+      } else {
+        tokenVolumes[A] = {
+          token: tokenA,
+          volume: Number(ret.baseVolume),
+          ethVolume: Number(ret.baseVolume),
+        };
+      }
+    }
+    if (tokenB) {
+      if (tokenVolumes[B]) {
+        tokenVolumes[B].volume += Number(ret.quoteVolume);
+        tokenVolumes[B].ethVolume += Number(ret.baseVolume);
+      } else {
+        tokenVolumes[B] = {
+          token: tokenB,
+          volume: Number(ret.quoteVolume),
+          ethVolume: Number(ret.baseVolume),
+        };
       }
     }
   });
@@ -2082,7 +2129,7 @@ EtheRoox.prototype.displayVolumes = function displayVolumes(orders, blockNumber,
       Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize);
     // filter only orders that match the smart contract address
     ordersFiltered = ordersFiltered.filter(
-      order => order.order.contractAddr === this.config.contractEtheRooxAddr);
+      order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
     // final order filtering and sorting
     const buyOrders = ordersFiltered.filter(x => x.amount > 0);
     const sellOrders = ordersFiltered.filter(x => x.amount < 0);
@@ -2094,21 +2141,21 @@ EtheRoox.prototype.displayVolumes = function displayVolumes(orders, blockNumber,
     pairVolume.ask = ask;
   });
   tokenVolumes = Object.values(tokenVolumes);
-  tokenVolumes.sort((a, b) => b.ethVolumes[0] - a.ethVolumes[0]);
+  tokenVolumes.sort((a, b) => b.ethVolume - a.ethVolume);
   pairVolumes = Object.values(pairVolumes);
-  pairVolumes.sort((a, b) => b.ethVolumes[0] - a.ethVolumes[0]);
+  pairVolumes.sort((a, b) => b.ethVolume - a.ethVolume);
   this.ejs(`${this.config.homeURL}/templates/volume.ejs`, 'volume', {
     tokenVolumes,
     pairVolumes,
   });
   callback();
 };
-EtheRoox.prototype.displayTradesAndChart = function displayTradesAndChart(callback) {
+EtherDelta.prototype.displayTradesAndChart = function displayTradesAndChart(callback) {
   // get the trade list
   const events = Object.values(this.eventsCache);
   const trades = [];
   events.forEach((event) => {
-    if (event.event === 'Trade' && event.address === this.config.contractEtheRooxAddr) {
+    if (event.event === 'Trade' && event.address === this.config.contractEtherDeltaAddr) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         let trade;
@@ -2125,6 +2172,7 @@ EtheRoox.prototype.displayTradesAndChart = function displayTradesAndChart(callba
               .div(this.getDivisor(event.args.tokenGive)),
             id: (event.blockNumber * 1000) + event.transactionIndex,
             blockNumber: event.blockNumber,
+            date: new Date(utility.hexToDec(event.timeStamp) * 1000),
             buyer: event.args.get,
             seller: event.args.give,
           };
@@ -2141,6 +2189,7 @@ EtheRoox.prototype.displayTradesAndChart = function displayTradesAndChart(callba
               .div(this.getDivisor(event.args.tokenGet)),
             id: (event.blockNumber * 1000) + event.transactionIndex,
             blockNumber: event.blockNumber,
+            date: new Date(utility.hexToDec(event.timeStamp) * 1000),
             buyer: event.args.give,
             seller: event.args.get,
           };
@@ -2166,7 +2215,7 @@ EtheRoox.prototype.displayTradesAndChart = function displayTradesAndChart(callba
   }
   const now = new Date();
   const data = trades
-    .map(trade => [this.blockTime(trade.blockNumber), trade.price.toNumber()])
+    .map(trade => [trade.date, trade.price.toNumber()])
     .filter(x => now - x[0] < 86400 * 1000 * 7);
   const values = data.map(x => x[1]);
   values.sort();
@@ -2224,7 +2273,7 @@ EtheRoox.prototype.displayTradesAndChart = function displayTradesAndChart(callba
 
   callback();
 };
-EtheRoox.prototype.candlestickChart =
+EtherDelta.prototype.candlestickChart =
 function candlestickChart(elem, title, xtitle, ytitle, data, minValue, maxValue) {
   $(`#${elem}`).html('');
   google.charts.setOnLoadCallback(() => {
@@ -2269,7 +2318,7 @@ function candlestickChart(elem, title, xtitle, ytitle, data, minValue, maxValue)
     }
   });
 };
-EtheRoox.prototype.depthChart =
+EtherDelta.prototype.depthChart =
 function depthChart(elem, title, xtitle, ytitle, data, minX, maxX) {
   $(`#${elem}`).html('');
   google.charts.setOnLoadCallback(() => {
@@ -2312,7 +2361,7 @@ function depthChart(elem, title, xtitle, ytitle, data, minX, maxX) {
     }
   });
 };
-EtheRoox.prototype.lineChart =
+EtherDelta.prototype.lineChart =
 function lineChart(elem, title, xtype, ytype, xtitle, ytitle, data) {
   $(`#${elem}`).html('');
   google.charts.setOnLoadCallback(() => {
@@ -2340,50 +2389,9 @@ function lineChart(elem, title, xtype, ytype, xtitle, ytitle, data) {
     }
   });
 };
-EtheRoox.prototype.getOrders = function getOrders(callback) {
-  utility.getURL(`${this.config.apiServer}/orders/${this.apiServerNonce}`, (err, result) => {
-    if (!err && result) {
-      try {
-        const res = JSON.parse(result);
-        const blockNumber = res.blockNumber;
-        let orders;
-        if (Array.isArray(res.orders)) {
-          orders = res.orders;
-        } else {
-          orders = Object.values(res.orders);
-        }
-        orders.forEach((x) => {
-          Object.assign(x, {
-            price: new BigNumber(x.price),
-            // amount: new BigNumber(x.amount),
-            // availableVolume: new BigNumber(x.availableVolume),
-            // ethAvailableVolume: x.ethAvailableVolume,
-            order: Object.assign(x.order, {
-              amountGet: new BigNumber(x.order.amountGet),
-              amountGive: new BigNumber(x.order.amountGive),
-              expires: Number(x.order.expires),
-              nonce: Number(x.order.nonce),
-              tokenGet: x.order.tokenGet,
-              tokenGive: x.order.tokenGive,
-              user: x.order.user,
-              r: x.order.r,
-              s: x.order.s,
-              v: x.order.v ? Number(x.order.v) : undefined,
-            }),
-          });
-        });
-        callback(null, { orders, blockNumber });
-      } catch (errCatch) {
-        callback(err, undefined);
-      }
-    } else {
-      callback(err, undefined);
-    }
-  });
-};
-EtheRoox.prototype.getOrdersByPair = function getOrdersByPair(tokenA, tokenB, callback) {
+EtherDelta.prototype.getOrdersByPair = function getOrdersByPair(tokenA, tokenB, callback) {
   utility.getURL(`${this.config.apiServer}/orders/${this.apiServerNonce}/${tokenA}/${tokenB}`, (err, result) => {
-    if (!err) {
+    if (!err && result !== 'error') {
       try {
         const res = JSON.parse(result);
         const blockNumber = res.blockNumber;
@@ -2415,14 +2423,30 @@ EtheRoox.prototype.getOrdersByPair = function getOrdersByPair(tokenA, tokenB, ca
         });
         callback(null, { orders, blockNumber });
       } catch (errCatch) {
-        callback(err, undefined);
+        callback(err, this.ordersResultByPair);
       }
     } else {
-      callback(err, undefined);
+      this.apiServerNonce = Math.random().toString().slice(2) +
+        Math.random().toString().slice(2);
+      callback(err, this.ordersResultByPair);
     }
   });
 };
-EtheRoox.prototype.getTopOrders = function getTopOrders(callback) {
+EtherDelta.prototype.getReturnTicker = function getTopOrders(callback) {
+  utility.getURL(`${this.config.apiServer}/returnTicker`, (err, result) => {
+    if (!err && result !== 'error') {
+      try {
+        const res = JSON.parse(result);
+        callback(null, res);
+      } catch (errCatch) {
+        callback(err, this.returnTicker);
+      }
+    } else {
+      callback(err, this.returnTicker);
+    }
+  });
+};
+EtherDelta.prototype.getTopOrders = function getTopOrders(callback) {
   utility.getURL(`${this.config.apiServer}/topOrders/${this.apiServerNonce}`, (err, result) => {
     if (!err) {
       try {
@@ -2456,14 +2480,14 @@ EtheRoox.prototype.getTopOrders = function getTopOrders(callback) {
         });
         callback(null, { orders, blockNumber });
       } catch (errCatch) {
-        callback(err, undefined);
+        callback(err, this.topOrdersResult);
       }
     } else {
-      callback(err, undefined);
+      callback(err, this.topOrdersResult);
     }
   });
 };
-EtheRoox.prototype.displayOrderbook = function displayOrderbook(ordersIn, blockNumber, callback) {
+EtherDelta.prototype.displayOrderbook = function displayOrderbook(ordersIn, blockNumber, callback) {
   // only look at orders for the selected token and base
   let orders = ordersIn.filter(
     x =>
@@ -2478,7 +2502,7 @@ EtheRoox.prototype.displayOrderbook = function displayOrderbook(ordersIn, blockN
     Number(order.ethAvailableVolume).toFixed(3) >= this.minOrderSize &&
     Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize);
   // filter only orders that match the smart contract address
-  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtheRooxAddr);
+  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
   // final order filtering and sorting
   const buyOrders = orders.filter(x => x.amount > 0);
   const sellOrders = orders.filter(x => x.amount < 0);
@@ -2532,10 +2556,13 @@ EtheRoox.prototype.displayOrderbook = function displayOrderbook(ordersIn, blockN
     $('#orderBookMid').position().top -
     ($('#orderBookScroll')[0].clientHeight / 2) -
     $('#orderBookMid')[0].clientHeight;
-  this.depthChart('chartDepth', '', '', '', depthData, median * 0.25, median * 1.75);
+  const depthDataFiltered = depthData.slice(0, 1).concat(depthData.slice(1)
+    .map(x => [x[0], Number(x[1]), x[2]])
+    .filter(x => x[0] > median * 0.025 && x[0] < median * 1.75));
+  this.depthChart('chartDepth', '', '', '', depthDataFiltered, median * 0.25, median * 1.75);
   callback();
 };
-EtheRoox.prototype.displayTokensAndBases = function displayTokensAndBases(callback) {
+EtherDelta.prototype.displayTokensAndBases = function displayTokensAndBases(callback) {
   const tokens = this.config.tokens.map(x => x);
   tokens.sort((a, b) => (a.name > b.name ? 1 : -1));
   this.ejs(`${this.config.homeURL}/templates/tokensDropdown.ejs`, 'tokensDropdown', {
@@ -2548,7 +2575,7 @@ EtheRoox.prototype.displayTokensAndBases = function displayTokensAndBases(callba
   });
   callback();
 };
-EtheRoox.prototype.displayAllBalances = function displayAllBalances(callback) {
+EtherDelta.prototype.displayAllBalances = function displayAllBalances(callback) {
   const zeroAddr = '0x0000000000000000000000000000000000000000';
   // add selected token and base to config.tokens
   const tempTokens = [this.selectedToken, this.selectedBase];
@@ -2558,8 +2585,8 @@ EtheRoox.prototype.displayAllBalances = function displayAllBalances(callback) {
       if (token.addr === zeroAddr) {
         utility.call(
           this.web3,
-          this.contractEtheRoox,
-          this.config.contractEtheRooxAddr,
+          this.contractEtherDelta,
+          this.config.contractEtherDeltaAddr,
           'balanceOf',
           [token.addr, this.addrs[this.selectedAccount]],
           (err, result) => {
@@ -2578,8 +2605,8 @@ EtheRoox.prototype.displayAllBalances = function displayAllBalances(callback) {
       } else {
         utility.call(
           this.web3,
-          this.contractEtheRoox,
-          this.config.contractEtheRooxAddr,
+          this.contractEtherDelta,
+          this.config.contractEtherDeltaAddr,
           'balanceOf',
           [token.addr, this.addrs[this.selectedAccount]],
           (err, result) => {
@@ -2624,11 +2651,11 @@ EtheRoox.prototype.displayAllBalances = function displayAllBalances(callback) {
       callback();
     });
 };
-EtheRoox.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
-  let amount = utility.ethToWei(inputAmount, this.getDivisor(addr));
+EtherDelta.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
+  let amount = new BigNumber(Number(utility.ethToWei(inputAmount, this.getDivisor(addr))));
   const token = this.getToken(addr);
-  if (amount <= 0) {
-    this.alertError('You must specify a valid amount to transfer.');
+  if (amount.lte(0)) {
+    this.dialogError('You must specify a valid amount to transfer.');
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
@@ -2639,7 +2666,16 @@ EtheRoox.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
     return;
   }
   if (!this.web3.isAddress(toAddr) || toAddr.slice(0, 39) === '0x0000000000000000000000000000000000000' || toAddr.toLowerCase() === this.addrs[this.selectedAccount].toLowerCase()) {
-    this.alertError('Please specify a valid address.');
+    this.dialogError('Please specify a valid address.');
+    ga('send', {
+      hitType: 'event',
+      eventCategory: 'Error',
+      eventAction: 'Transfer - invalid address',
+      eventLabel: token.name,
+      eventValue: inputAmount,
+    });
+  } else if (toAddr.toLowerCase() === this.config.contractEtherDeltaAddr.toLowerCase()) {
+    this.dialogError('If you send funds directly to the EtherDelta smart contract, they will be lost. You need to use the Deposit tab to deposit.');
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
@@ -2650,9 +2686,9 @@ EtheRoox.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
   } else if (addr.slice(0, 39) === '0x0000000000000000000000000000000000000') {
     // plain Ether transfer
     utility.getBalance(this.web3, this.addrs[this.selectedAccount], (err, balance) => {
-      if (amount > balance) amount = balance;
-      if (amount <= 0) {
-        this.alertError('You do not have anything to transfer. Note: you can only transfer from your "Wallet." If you have Ether on deposit, please withdraw first, then transfer.');
+      if (amount.gt(balance)) amount = balance;
+      if (amount.lte(0)) {
+        this.dialogError('You do not have anything to transfer. Note: you can only transfer from your "Wallet." If you have Ether on deposit, please withdraw first, then transfer.');
         ga('send', {
           hitType: 'event',
           eventCategory: 'Error',
@@ -2666,7 +2702,7 @@ EtheRoox.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
           undefined,
           toAddr,
           undefined,
-          [{ gas: this.config.gasDeposit, value: amount }],
+          [{ gas: this.config.gasDeposit, value: amount.toNumber() }],
           this.addrs[this.selectedAccount],
           this.pks[this.selectedAccount],
           this.nonce,
@@ -2693,9 +2729,9 @@ EtheRoox.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
       'balanceOf',
       [this.addrs[this.selectedAccount]],
       (err, result) => {
-        if (amount > result) amount = result;
-        if (amount <= 0) {
-          this.alertError('You do not have anything to transfer. Note: you can only transfer from your "Wallet." If you have tokens on deposit, please withdraw first, then transfer.');
+        if (amount.gt(result)) amount = result;
+        if (amount.lte(0)) {
+          this.dialogError('You do not have anything to transfer. Note: you can only transfer from your "Wallet." If you have tokens on deposit, please withdraw first, then transfer.');
           ga('send', {
             hitType: 'event',
             eventCategory: 'Error',
@@ -2729,11 +2765,11 @@ EtheRoox.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
       });
   }
 };
-EtheRoox.prototype.deposit = function deposit(addr, inputAmount) {
-  let amount = utility.ethToWei(inputAmount, this.getDivisor(addr));
+EtherDelta.prototype.deposit = function deposit(addr, inputAmount) {
+  let amount = new BigNumber(Number(utility.ethToWei(inputAmount, this.getDivisor(addr))));
   const token = this.getToken(addr);
-  if (amount <= 0) {
-    this.alertError('You must specify a valid amount to deposit.');
+  if (amount.lte(0)) {
+    this.dialogError('You must specify a valid amount to deposit.');
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
@@ -2745,14 +2781,14 @@ EtheRoox.prototype.deposit = function deposit(addr, inputAmount) {
   }
   if (addr.slice(0, 39) === '0x0000000000000000000000000000000000000') {
     utility.getBalance(this.web3, this.addrs[this.selectedAccount], (err, result) => {
-      if (amount > result && amount < result * 1.1) amount = result;
-      if (amount <= result) {
+      if (amount.gt(result) && amount.lt(result.times(new BigNumber(1.1)))) amount = result;
+      if (amount.lte(result)) {
         utility.send(
           this.web3,
-          this.contractEtheRoox,
-          this.config.contractEtheRooxAddr,
+          this.contractEtherDelta,
+          this.config.contractEtherDeltaAddr,
           'deposit',
-          [{ gas: this.config.gasDeposit, value: amount }],
+          [{ gas: this.config.gasDeposit, value: amount.toNumber() }],
           this.addrs[this.selectedAccount],
           this.pks[this.selectedAccount],
           this.nonce,
@@ -2769,7 +2805,7 @@ EtheRoox.prototype.deposit = function deposit(addr, inputAmount) {
             });
           });
       } else {
-        this.alertError("You can't deposit more Ether than you have.");
+        this.dialogError("You can't deposit more Ether than you have.");
         ga('send', {
           hitType: 'event',
           eventCategory: 'Error',
@@ -2784,38 +2820,67 @@ EtheRoox.prototype.deposit = function deposit(addr, inputAmount) {
       this.web3,
       this.contractToken,
       token.addr,
-      'balanceOf',
-      [this.addrs[this.selectedAccount]],
-      (err, result) => {
-        if (amount > result && amount < result * 1.1) amount = result;
-        if (amount <= result) {
-          utility.send(
-            this.web3,
-            this.contractToken,
-            addr,
-            'approve',
-            [this.config.contractEtheRooxAddr, amount, { gas: this.config.gasApprove, value: 0 }],
-            this.addrs[this.selectedAccount],
-            this.pks[this.selectedAccount],
-            this.nonce,
-            (errSend, resultSend) => {
-              this.nonce = resultSend.nonce;
+      'allowance',
+      [this.addrs[this.selectedAccount], this.config.contractEtherDeltaAddr],
+      (errAllowance, resultAllowance) => {
+        if (resultAllowance.gt(0) && amount.gt(resultAllowance)) amount = resultAllowance;
+        utility.call(
+          this.web3,
+          this.contractToken,
+          token.addr,
+          'balanceOf',
+          [this.addrs[this.selectedAccount]],
+          (errBalanceOf, resultBalanceOf) => {
+            if (amount.gt(resultBalanceOf) &&
+              amount.lt(resultBalanceOf.times(new BigNumber(1.1)))) amount = resultBalanceOf;
+            if (amount.lte(resultBalanceOf)) {
               const txs = [];
-              txs.push(resultSend);
-              utility.send(
-                this.web3,
-                this.contractEtheRoox,
-                this.config.contractEtheRooxAddr,
-                'depositToken',
-                [addr, amount, { gas: this.config.gasDeposit, value: 0 }],
-                this.addrs[this.selectedAccount],
-                this.pks[this.selectedAccount],
-                this.nonce,
-                (errSend2, resultSend2) => {
-                  this.nonce = resultSend2.nonce;
-                  txs.push(resultSend2);
-                  this.addPending(errSend || errSend2, txs);
-                  this.alertTxResult(errSend || errSend2, txs);
+              async.series(
+                [
+                  (callbackSeries) => {
+                    if (resultAllowance.eq(0)) {
+                      utility.send(
+                        this.web3,
+                        this.contractToken,
+                        addr,
+                        'approve',
+                        [this.config.contractEtherDeltaAddr, amount,
+                          { gas: this.config.gasApprove, value: 0 }],
+                        this.addrs[this.selectedAccount],
+                        this.pks[this.selectedAccount],
+                        this.nonce,
+                        (errSend, resultSend) => {
+                          this.nonce = resultSend.nonce;
+                          txs.push(resultSend);
+                          callbackSeries(null, { errSend, resultSend });
+                        });
+                    } else {
+                      callbackSeries(null, undefined);
+                    }
+                  },
+                  (callbackSeries) => {
+                    utility.send(
+                      this.web3,
+                      this.contractEtherDelta,
+                      this.config.contractEtherDeltaAddr,
+                      'depositToken',
+                      [addr, amount, { gas: this.config.gasDeposit, value: 0 }],
+                      this.addrs[this.selectedAccount],
+                      this.pks[this.selectedAccount],
+                      this.nonce,
+                      (errSend, resultSend) => {
+                        this.nonce = resultSend.nonce;
+                        txs.push(resultSend);
+                        callbackSeries(null, { errSend, resultSend });
+                      });
+                  },
+                ],
+                (err, results) => {
+                  const [tx1, tx2] = results;
+                  const errSend1 = tx1 ? tx1.errSend1 : undefined;
+                  const errSend2 = tx2 ? tx2.errSend1 : undefined;
+                  this.addPending(errSend1 || errSend2, txs);
+                  this.alertTxResult(errSend1 || errSend2, txs);
                   ga('send', {
                     hitType: 'event',
                     eventCategory: 'Action',
@@ -2824,25 +2889,25 @@ EtheRoox.prototype.deposit = function deposit(addr, inputAmount) {
                     eventValue: inputAmount,
                   });
                 });
-            });
-        } else {
-          this.alertError("You can't deposit more tokens than you have.");
-          ga('send', {
-            hitType: 'event',
-            eventCategory: 'Error',
-            eventAction: 'Deposit - not enough balance',
-            eventLabel: token.name,
-            eventValue: inputAmount,
+            } else {
+              this.dialogError("You can't deposit more tokens than you have.");
+              ga('send', {
+                hitType: 'event',
+                eventCategory: 'Error',
+                eventAction: 'Deposit - not enough balance',
+                eventLabel: token.name,
+                eventValue: inputAmount,
+              });
+            }
           });
-        }
       });
   }
 };
-EtheRoox.prototype.withdraw = function withdraw(addr, amountIn) {
-  let amount = utility.ethToWei(amountIn, this.getDivisor(addr));
+EtherDelta.prototype.withdraw = function withdraw(addr, amountIn) {
+  let amount = new BigNumber(Number(utility.ethToWei(amountIn, this.getDivisor(addr))));
   const token = this.getToken(addr);
-  if (amount <= 0) {
-    this.alertError('You must specify a valid amount to withdraw.');
+  if (amount.lte(0)) {
+    this.dialogError('You must specify a valid amount to withdraw.');
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
@@ -2854,8 +2919,8 @@ EtheRoox.prototype.withdraw = function withdraw(addr, amountIn) {
   }
   utility.call(
     this.web3,
-    this.contractEtheRoox,
-    this.config.contractEtheRooxAddr,
+    this.contractEtherDelta,
+    this.config.contractEtherDeltaAddr,
     'balanceOf',
     [addr, this.addrs[this.selectedAccount]],
     (err, result) => {
@@ -2865,8 +2930,8 @@ EtheRoox.prototype.withdraw = function withdraw(addr, amountIn) {
       if (amount > balance) {
         amount = balance;
       }
-      if (amount <= 0) {
-        this.alertError("You don't have anything to withdraw.");
+      if (amount.lte(0)) {
+        this.dialogError("You don't have anything to withdraw.");
         ga('send', {
           hitType: 'event',
           eventCategory: 'Error',
@@ -2877,8 +2942,8 @@ EtheRoox.prototype.withdraw = function withdraw(addr, amountIn) {
       } else if (addr.slice(0, 39) === '0x0000000000000000000000000000000000000') {
         utility.send(
           this.web3,
-          this.contractEtheRoox,
-          this.config.contractEtheRooxAddr,
+          this.contractEtherDelta,
+          this.config.contractEtherDeltaAddr,
           'withdraw',
           [amount, { gas: this.config.gasWithdraw, value: 0 }],
           this.addrs[this.selectedAccount],
@@ -2899,8 +2964,8 @@ EtheRoox.prototype.withdraw = function withdraw(addr, amountIn) {
       } else {
         utility.send(
           this.web3,
-          this.contractEtheRoox,
-          this.config.contractEtheRooxAddr,
+          this.contractEtherDelta,
+          this.config.contractEtherDeltaAddr,
           'withdrawToken',
           [addr, amount, { gas: this.config.gasWithdraw, value: 0 }],
           this.addrs[this.selectedAccount],
@@ -2921,7 +2986,7 @@ EtheRoox.prototype.withdraw = function withdraw(addr, amountIn) {
       }
     });
 };
-EtheRoox.prototype.order = function order(direction, amount, price, expires, refresh) {
+EtherDelta.prototype.order = function order(direction, amount, price, expires, refresh) {
   utility.blockNumber(this.web3, (err, blockNumber) => {
     const orderObj = {
       baseAddr: this.selectedBase.addr,
@@ -2950,14 +3015,14 @@ EtheRoox.prototype.order = function order(direction, amount, price, expires, ref
     }
   });
 };
-EtheRoox.prototype.publishOrder = function publishOrder(
+EtherDelta.prototype.publishOrder = function publishOrder(
   baseAddr, tokenAddr, direction, amount, price, expires, orderNonce) {
   let tokenGet;
   let tokenGive;
   let amountGet;
   let amountGive;
   if (this.addrs[this.selectedAccount].slice(0, 39) === '0x0000000000000000000000000000000000000') {
-    this.alertError(
+    this.dialogError(
       "You haven't selected an account. Make sure you have an account selected from the Accounts dropdown in the upper right.");
     ga('send', {
       hitType: 'event',
@@ -2967,7 +3032,7 @@ EtheRoox.prototype.publishOrder = function publishOrder(
     });
     return;
   } else if (amount < this.minOrderSize || amount * price < this.minOrderSize) {
-    this.alertError(`The minimum order size (for both tokens in your order) is ${this.minOrderSize}.`);
+    this.dialogError(`The minimum order size (for both tokens in your order) is ${this.minOrderSize}.`);
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
@@ -2993,14 +3058,14 @@ EtheRoox.prototype.publishOrder = function publishOrder(
   }
   utility.call(
     this.web3,
-    this.contractEtheRoox,
-    this.config.contractEtheRooxAddr,
+    this.contractEtherDelta,
+    this.config.contractEtherDeltaAddr,
     'balanceOf',
     [tokenGive, this.addrs[this.selectedAccount]],
     (err, result) => {
       const balance = result;
       if (balance.lt(new BigNumber(amountGive))) {
-        this.alertError(
+        this.dialogError(
           "You do not have enough funds to send this order. Please DEPOSIT first using the Deposit form in the upper left. Enter the amount you want to deposit and press the 'Deposit' button.");
         ga('send', {
           hitType: 'event',
@@ -3012,7 +3077,7 @@ EtheRoox.prototype.publishOrder = function publishOrder(
         // offchain order
         const condensed = utility.pack(
           [
-            this.config.contractEtheRooxAddr,
+            this.config.contractEtherDeltaAddr,
             tokenGet,
             amountGet,
             tokenGive,
@@ -3026,7 +3091,7 @@ EtheRoox.prototype.publishOrder = function publishOrder(
         hash, this.pks[this.selectedAccount], (errSign, sig) => {
           if (errSign) {
             console.log(errSign);
-            this.alertError(
+            this.dialogError(
               'Order signing failed. Make sure you have an account selected from the Accounts dropdown in the upper right.');
             ga('send', {
               hitType: 'event',
@@ -3037,7 +3102,7 @@ EtheRoox.prototype.publishOrder = function publishOrder(
           } else {
             // Send order to offchain book:
             const order = {
-              contractAddr: this.config.contractEtheRooxAddr,
+              contractAddr: this.config.contractEtherDeltaAddr,
               tokenGet,
               amountGet,
               tokenGive,
@@ -3065,7 +3130,7 @@ EtheRoox.prototype.publishOrder = function publishOrder(
                     eventLabel: `${this.selectedToken.name}/${this.selectedBase.name}`,
                   });
                 } else {
-                  this.alertError(
+                  this.dialogError(
                     'You tried sending an order to the order book but there was an error...');
                   ga('send', {
                     hitType: 'event',
@@ -3081,8 +3146,8 @@ EtheRoox.prototype.publishOrder = function publishOrder(
         // onchain order
         utility.send(
           this.web3,
-          this.contractEtheRoox,
-          this.config.contractEtheRooxAddr,
+          this.contractEtherDelta,
+          this.config.contractEtherDeltaAddr,
           'order',
           [
             tokenGet,
@@ -3110,13 +3175,13 @@ EtheRoox.prototype.publishOrder = function publishOrder(
       }
     });
 };
-EtheRoox.prototype.cancelOrder = function cancelOrder(orderIn) {
+EtherDelta.prototype.cancelOrder = function cancelOrder(orderIn) {
   const order = JSON.parse(decodeURIComponent(orderIn));
   if (order.user.toLowerCase() === this.addrs[this.selectedAccount].toLowerCase()) {
     utility.send(
       this.web3,
-      this.contractEtheRoox,
-      this.config.contractEtheRooxAddr,
+      this.contractEtherDelta,
+      this.config.contractEtherDeltaAddr,
       'cancelOrder',
       [
         order.tokenGet,
@@ -3147,9 +3212,9 @@ EtheRoox.prototype.cancelOrder = function cancelOrder(orderIn) {
       });
   }
 };
-EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
+EtherDelta.prototype.trade = function trade(kind, order, inputAmount) {
   if (this.addrs[this.selectedAccount].slice(0, 39) === '0x0000000000000000000000000000000000000') {
-    this.alertError(
+    this.dialogError(
       "You haven't selected an account. Make sure you have an account selected from the Accounts dropdown in the upper right.");
     ga('send', {
       hitType: 'event',
@@ -3162,28 +3227,28 @@ EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
   let amount;
   if (kind === 'sell') {
     // if I'm selling a bid, the buyer is getting the token
-    amount = utility.ethToWei(inputAmount, this.getDivisor(order.tokenGet));
+    amount = new BigNumber(utility.ethToWei(inputAmount, this.getDivisor(order.tokenGet)));
   } else if (kind === 'buy') {
     // if I'm buying an offer, the seller is getting
     // the base and giving the token, so must convert to get terms
-    amount = utility.ethToWei(
+    amount = new BigNumber(utility.ethToWei(
       inputAmount * (Number(order.amountGet) / Number(order.amountGive)),
-      this.getDivisor(order.tokenGive));
+      this.getDivisor(order.tokenGive)));
   } else {
     return;
   }
   utility.call(
     this.web3,
-    this.contractEtheRoox,
-    this.config.contractEtheRooxAddr,
+    this.contractEtherDelta,
+    this.config.contractEtherDeltaAddr,
     'balanceOf',
     [order.tokenGet, this.addrs[this.selectedAccount]],
     (err, result) => {
-      const availableBalance = result.toNumber();
+      const availableBalance = result;
       utility.call(
         this.web3,
-        this.contractEtheRoox,
-        this.config.contractEtheRooxAddr,
+        this.contractEtherDelta,
+        this.config.contractEtherDeltaAddr,
         'availableVolume',
         [
           order.tokenGet,
@@ -3198,12 +3263,12 @@ EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
           order.s,
         ],
         (errAvailableVolume, resultAvailableVolume) => {
-          const availableVolume = resultAvailableVolume.toNumber();
-          if (amount > availableBalance / 1.0031) {
+          const availableVolume = resultAvailableVolume;
+          if (amount.gt(availableBalance.divToInt(1.0031))) {
             // balance adjusted for fees (0.0001 to avoid rounding error)
-            amount = availableBalance / 1.0031;
+            amount = availableBalance.divToInt(1.0031);
           }
-          if (amount > availableVolume) amount = availableVolume;
+          if (amount.gt(availableVolume)) amount = availableVolume;
           let v = Number(order.v);
           let r = order.r;
           let s = order.s;
@@ -3214,8 +3279,8 @@ EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
           }
           utility.call(
             this.web3,
-            this.contractEtheRoox,
-            this.config.contractEtheRooxAddr,
+            this.contractEtherDelta,
+            this.config.contractEtherDeltaAddr,
             'testTrade',
             [
               order.tokenGet,
@@ -3235,8 +3300,8 @@ EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
               if (resultTestTrade && amount > 0) {
                 utility.send(
                   this.web3,
-                  this.contractEtheRoox,
-                  this.config.contractEtheRooxAddr,
+                  this.contractEtherDelta,
+                  this.config.contractEtherDeltaAddr,
                   'trade',
                   [
                     order.tokenGet,
@@ -3267,9 +3332,20 @@ EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
                       eventValue: inputAmount,
                     });
                   });
+              } else if (utility.weiToEth(availableVolume,
+              this.getDivisor(this.selectedToken)) < this.minOrderSize) {
+                this.dialogError(
+                  "You cannot trade this order because it already traded. Someone else already traded this order and the order book hasn't updated yet.");
+                ga('send', {
+                  hitType: 'event',
+                  eventCategory: 'Error',
+                  eventAction: 'Trade - failed',
+                  eventLabel: `${this.selectedToken.name}/${this.selectedBase.name}`,
+                  eventValue: inputAmount,
+                });
               } else {
-                this.alertError(
-                  "You cannot trade this order. Either this order already traded, or you don't have enough funds. Please DEPOSIT first using the Deposit form in the upper left. Enter the amount you want to deposit and press the 'Deposit' button.");
+                this.dialogError(
+                  "You cannot trade this order because you don't have enough funds. Please DEPOSIT first using the Deposit form in the upper left. Enter the amount you want to deposit and press the 'Deposit' button.");
                 ga('send', {
                   hitType: 'event',
                   eventCategory: 'Error',
@@ -3282,12 +3358,7 @@ EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
         });
     });
 };
-EtheRoox.prototype.blockTime = function blockTime(block) {
-  return new Date(
-    this.blockTimeSnapshot.date.getTime() +
-      ((block - this.blockTimeSnapshot.blockNumber) * 1000 * this.secondsPerBlock));
-};
-EtheRoox.prototype.addPending = function addPending(err, txsIn) {
+EtherDelta.prototype.addPending = function addPending(err, txsIn) {
   const txs = Array.isArray(txsIn) ? txsIn : [txsIn];
   txs.forEach((tx) => {
     if (!err && tx.txHash && tx.txHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
@@ -3297,7 +3368,7 @@ EtheRoox.prototype.addPending = function addPending(err, txsIn) {
   });
   this.refresh(() => {}, true, true);
 };
-EtheRoox.prototype.updateUrl = function updateUrl() {
+EtherDelta.prototype.updateUrl = function updateUrl() {
   let tokenName = this.selectedToken.name;
   let baseName = this.selectedBase.name;
   if (this.config.tokens.filter(x => x.name === tokenName).length === 0) {
@@ -3308,7 +3379,7 @@ EtheRoox.prototype.updateUrl = function updateUrl() {
   }
   window.location.hash = `#${tokenName}-${baseName}`;
 };
-EtheRoox.prototype.getDivisor = function getDivisor(tokenOrAddress) {
+EtherDelta.prototype.getDivisor = function getDivisor(tokenOrAddress) {
   let result = 1000000000000000000;
   const token = this.getToken(tokenOrAddress);
   if (token && token.decimals !== undefined) {
@@ -3316,7 +3387,7 @@ EtheRoox.prototype.getDivisor = function getDivisor(tokenOrAddress) {
   }
   return new BigNumber(result);
 };
-EtheRoox.prototype.getToken = function getToken(addrOrToken, name, decimals) {
+EtherDelta.prototype.getToken = function getToken(addrOrToken, name, decimals) {
   let result;
   const lowerAddrOrToken = typeof addrOrToken === 'string' ? addrOrToken.toLowerCase() : addrOrToken;
   const matchingTokens = this.config.tokens.filter(
@@ -3333,9 +3404,10 @@ EtheRoox.prototype.getToken = function getToken(addrOrToken, name, decimals) {
     result = this.selectedToken;
   } else if (this.selectedBase.addr.toLowerCase() === lowerAddrOrToken) {
     result = this.selectedBase;
-  } else if (addrOrToken.addr && JSON.stringify(Object.keys(addrOrToken).sort()) === expectedKeys) {
+  } else if (addrOrToken && addrOrToken.addr &&
+  JSON.stringify(Object.keys(addrOrToken).sort()) === expectedKeys) {
     result = addrOrToken;
-  } else if (addrOrToken.slice(0, 2) === '0x' && name && decimals >= 0) {
+  } else if (typeof addrOrToken === 'string' && addrOrToken.slice(0, 2) === '0x' && name && decimals >= 0) {
     result = JSON.parse(JSON.stringify(this.config.tokens[0]));
     result.addr = lowerAddrOrToken;
     result.name = name;
@@ -3343,7 +3415,7 @@ EtheRoox.prototype.getToken = function getToken(addrOrToken, name, decimals) {
   }
   return result;
 };
-EtheRoox.prototype.loadToken = function loadToken(addr, callback) {
+EtherDelta.prototype.loadToken = function loadToken(addr, callback) {
   let token = this.getToken(addr);
   if (token) {
     callback(null, token);
@@ -3367,13 +3439,11 @@ EtheRoox.prototype.loadToken = function loadToken(addr, callback) {
     }
   }
 };
-EtheRoox.prototype.selectToken = function selectToken(addrOrToken, name, decimals) {
+EtherDelta.prototype.selectToken = function selectToken(addrOrToken, name, decimals) {
   const token = this.getToken(addrOrToken, name, decimals);
   if (token) {
-    this.selectedToken = token;
-    this.ordersResultByPair = { orders: [], blockNumber: 0 };
     this.loading(() => {});
-    this.refresh(() => {}, true, true, this.selectedToken, this.selectedBase);
+    this.refresh(() => {}, true, true, token, this.selectedBase);
     ga('send', {
       hitType: 'event',
       eventCategory: 'Token',
@@ -3382,13 +3452,11 @@ EtheRoox.prototype.selectToken = function selectToken(addrOrToken, name, decimal
     });
   }
 };
-EtheRoox.prototype.selectBase = function selectBase(addrOrToken, name, decimals) {
+EtherDelta.prototype.selectBase = function selectBase(addrOrToken, name, decimals) {
   const base = this.getToken(addrOrToken, name, decimals);
   if (base) {
-    this.selectedBase = base;
-    this.ordersResultByPair = { orders: [], blockNumber: 0 };
     this.loading(() => {});
-    this.refresh(() => {}, true, true, this.selectedToken, this.selectedBase);
+    this.refresh(() => {}, true, true, this.selectedToken, base);
     ga('send', {
       hitType: 'event',
       eventCategory: 'Token',
@@ -3397,15 +3465,12 @@ EtheRoox.prototype.selectBase = function selectBase(addrOrToken, name, decimals)
     });
   }
 };
-EtheRoox.prototype.selectTokenAndBase = function selectTokenAndBase(tokenAddr, baseAddr) {
+EtherDelta.prototype.selectTokenAndBase = function selectTokenAndBase(tokenAddr, baseAddr) {
   const token = this.getToken(tokenAddr);
   const base = this.getToken(baseAddr);
   if (token && base) {
-    this.selectedToken = token;
-    this.selectedBase = base;
-    this.ordersResultByPair = { orders: [], blockNumber: 0 };
     this.loading(() => {});
-    this.refresh(() => {}, true, true, this.selectedToken, this.selectedBase);
+    this.refresh(() => {}, true, true, token, base);
     ga('send', {
       hitType: 'event',
       eventCategory: 'Token',
@@ -3414,7 +3479,14 @@ EtheRoox.prototype.selectTokenAndBase = function selectTokenAndBase(tokenAddr, b
     });
   }
 };
-EtheRoox.prototype.displayBuySell = function displayBuySell(callback) {
+EtherDelta.prototype.setGasPrice = function setGasPrice(gasPrice) {
+  if (gasPrice) {
+    this.config.ethGasPrice = Number(gasPrice) * 1000000000;
+    utility.createCookie('ethGasPrice', JSON.stringify(this.config.ethGasPrice), 999);
+    this.minGas = (this.config.ethGasPrice * this.config.gasDeposit) / (10 ** 18);
+  }
+};
+EtherDelta.prototype.displayBuySell = function displayBuySell(callback) {
   this.ejs(`${this.config.homeURL}/templates/buy.ejs`, 'buy', {
     selectedToken: this.selectedToken,
     selectedBase: this.selectedBase,
@@ -3426,17 +3498,17 @@ EtheRoox.prototype.displayBuySell = function displayBuySell(callback) {
   this.enableTooltipsAndPopovers();
   callback();
 };
-EtheRoox.prototype.displayTokenGuidesDropdown = function displayTokenGuidesDropdown() {
+EtherDelta.prototype.displayTokenGuidesDropdown = function displayTokenGuidesDropdown() {
   const tokens = this.config.tokens.map(x => x);
   tokens.sort((a, b) => (a.name > b.name ? 1 : -1));
   this.ejs(`${this.config.homeURL}/templates/tokenGuidesDropdown.ejs`, 'tokenGuidesDropdown', {
     tokens,
   });
 };
-EtheRoox.prototype.displayHelpDropdown = function displayHelpDropdown() {
+EtherDelta.prototype.displayHelpDropdown = function displayHelpDropdown() {
   this.ejs(`${this.config.homeURL}/templates/helpDropdown.ejs`, 'helpDropdown', {});
 };
-EtheRoox.prototype.displayHelp = function displayHelp(name) {
+EtherDelta.prototype.displayHelp = function displayHelp(name) {
   $('#helpBody').html('');
   this.ejs(`${this.config.homeURL}/help/${name}.ejs`, 'helpBody', {});
   $('#helpModal').modal('show');
@@ -3447,7 +3519,7 @@ EtheRoox.prototype.displayHelp = function displayHelp(name) {
     eventLabel: name,
   });
 };
-EtheRoox.prototype.displayScreencast = function displayScreencast(name) {
+EtherDelta.prototype.displayScreencast = function displayScreencast(name) {
   $('#screencastBody').html('');
   this.ejs(`${this.config.homeURL}/help/${name}.ejs`, 'screencastBody', {});
   $('#screencastModal').modal('show');
@@ -3458,15 +3530,15 @@ EtheRoox.prototype.displayScreencast = function displayScreencast(name) {
     eventLabel: name,
   });
 };
-EtheRoox.prototype.displayConnectionDescription = function displayConnectionDescription() {
+EtherDelta.prototype.displayConnectionDescription = function displayConnectionDescription() {
   this.ejs(`${this.config.homeURL}/templates/connectionDescription.ejs`, 'connection', {
     connection: this.connection,
-    contracts: this.config.contractEtheRooxAddrs,
-    contractAddr: this.config.contractEtheRooxAddr,
-    contractLink: `https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/address/${this.config.contractEtheRooxAddr}`,
+    contracts: this.config.contractEtherDeltaAddrs,
+    contractAddr: this.config.contractEtherDeltaAddr,
+    contractLink: `https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/address/${this.config.contractEtherDeltaAddr}`,
   });
 };
-EtheRoox.prototype.displayTokenGuide = function displayTokenGuide(name) {
+EtherDelta.prototype.displayTokenGuide = function displayTokenGuide(name) {
   const matchingTokens = this.config.tokens.filter(x => name === x.name);
   if (matchingTokens.length === 1) {
     const token = matchingTokens[0];
@@ -3494,17 +3566,17 @@ EtheRoox.prototype.displayTokenGuide = function displayTokenGuide(name) {
     $('#tokenModal').modal('show');
   }
 };
-EtheRoox.prototype.checkContractUpgrade = function checkContractUpgrade() {
+EtherDelta.prototype.checkContractUpgrade = function checkContractUpgrade() {
   if (
-    (!this.selectedContract || this.selectedContract !== this.config.contractEtheRooxAddr) &&
+    (!this.selectedContract || this.selectedContract !== this.config.contractEtherDeltaAddr) &&
     (this.addrs.length > 1 ||
       (this.addrs.length === 1 && this.addrs[0].slice(0, 39) !== '0x0000000000000000000000000000000000000'))
   ) {
-    this.alertDialog(
-      '<p>EtheRoox has a new smart contract. It is now selected.</p><p>Please use the "Smart Contract" menu to select the old one and withdraw from it.</p><p><a href="javascript:;" class="btn btn-default" onclick="alertify.closeAll(); bundle.EtheRoox.displayHelp(\'smartContract\')">Smart contract changelog</a></p>');
+    this.dialogInfo(
+      '<p>EtherDelta has a new smart contract. It is now selected.</p><p>Please use the "Smart Contract" menu to select the old one and withdraw from it.</p><p><a href="javascript:;" class="btn btn-default" onclick="alertify.closeAll(); bundle.EtherDelta.displayHelp(\'smartContract\')">Smart contract changelog</a></p>');
   }
 };
-EtheRoox.prototype.resetCaches = function resetCaches() {
+EtherDelta.prototype.resetCaches = function resetCaches() {
   utility.eraseCookie(this.config.eventsCacheCookie);
   location.reload();
   ga('send', {
@@ -3513,7 +3585,7 @@ EtheRoox.prototype.resetCaches = function resetCaches() {
     eventAction: 'Reset caches',
   });
 };
-EtheRoox.prototype.loading = function loading(callback) {
+EtherDelta.prototype.loading = function loading(callback) {
   [
     'deposit',
     'withdraw',
@@ -3531,12 +3603,20 @@ EtheRoox.prototype.loading = function loading(callback) {
   });
   callback();
 };
-EtheRoox.prototype.refresh = function refresh(callback, forceEventRead, initMarket, token, base) {
-  if (token) this.selectedToken = token;
-  if (base) this.selectedBase = base;
+EtherDelta.prototype.refresh = function refresh(callback, forceEventRead, initMarket, token, base) {
   this.q.push((done) => {
+    if (token && base) {
+      this.selectedToken = token;
+      this.selectedBase = base;
+      this.ordersResultByPair = { orders: [], blockNumber: 0 };
+    }
+    if (this.selectedToken.name === 'ETH' && ['USD.DC', 'BTC.DC'].indexOf(this.selectedBase.name) < 0) {
+      const temp = this.selectedBase;
+      this.selectedBase = this.selectedToken;
+      this.selectedToken = temp;
+    }
     console.log('Beginning refresh', new Date(), `${this.selectedToken.name}/${this.selectedBase.name}`);
-    this.selectedContract = this.config.contractEtheRooxAddr;
+    this.selectedContract = this.config.contractEtherDeltaAddr;
     utility.createCookie(
       this.config.userCookie,
       JSON.stringify({
@@ -3578,13 +3658,18 @@ EtheRoox.prototype.refresh = function refresh(callback, forceEventRead, initMark
           async.parallel(
             [
               (callbackParallel) => {
-                this.loadEvents((newEvents) => {
+                console.log('Displaying my account balances', new Date());
+                this.displayAccounts(() => {});
+                this.displayAllBalances(() => {
+                  console.log('Done displaying my account balances', new Date());
+                });
+                callbackParallel();
+              },
+              (callbackParallel) => {
+                console.log('Loading events', new Date());
+                this.loadEvents((err, newEvents) => {
+                  console.log('Done loading events', newEvents, new Date());
                   callbackParallel(null, undefined);
-                  if (newEvents > 0 || forceEventRead) {
-                    this.displayAccounts(() => {});
-                    this.displayAllBalances(() => {});
-                    this.displayTradesAndChart(() => {});
-                  }
                 });
               },
               (callbackParallel) => {
@@ -3596,6 +3681,16 @@ EtheRoox.prototype.refresh = function refresh(callback, forceEventRead, initMark
                           this.topOrdersResult = result;
                         } else {
                           console.log('Top levels have not changed since last refresh.');
+                        }
+                        callbackParallel2(null, undefined);
+                      });
+                    },
+                    (callbackParallel2) => {
+                      this.getReturnTicker((err, result) => {
+                        if (!err && result) {
+                          this.returnTicker = result;
+                        } else {
+                          console.log('Return ticker has not changed since last refresh.');
                         }
                         callbackParallel2(null, undefined);
                       });
@@ -3615,54 +3710,65 @@ EtheRoox.prototype.refresh = function refresh(callback, forceEventRead, initMark
                     },
                   ],
                   () => {
-                    async.parallel(
-                      [
-                        (callbackParallel2) => {
-                          this.displayMyTransactions(
-                            this.ordersResultByPair.orders,
-                            this.ordersResultByPair.blockNumber,
-                            () => {
-                              callbackParallel2(null, undefined);
-                            });
-                        },
-                        (callbackParallel2) => {
-                          this.displayOrderbook(this.ordersResultByPair.orders,
-                          this.ordersResultByPair.blockNumber, () => {
-                            callbackParallel2(null, undefined);
-                          });
-                        },
-                        (callbackParallel2) => {
-                          this.displayVolumes(this.topOrdersResult.orders,
-                          this.topOrdersResult.blockNumber, () => {
-                            callbackParallel2(null, undefined);
-                          });
-                        }],
-                      () => {
-                        callbackParallel(null, undefined);
-                      });
+                    console.log('Displaying order book', new Date());
+                    this.displayOrderbook(this.ordersResultByPair.orders,
+                    this.ordersResultByPair.blockNumber, () => {
+                      console.log('Done displaying order book', new Date());
+                      callbackParallel(null, undefined);
+                    });
                   });
               }],
             () => {
-              callbackSeries(null, undefined);
+              async.parallel(
+                [
+                  (callbackParallel3) => {
+                    console.log('Displaying volumes', new Date());
+                    this.displayVolumes(this.topOrdersResult.orders,
+                    this.returnTicker,
+                    this.topOrdersResult.blockNumber, () => {
+                      console.log('Done displaying volumes', new Date());
+                      callbackParallel3();
+                    });
+                  },
+                  (callbackParallel3) => {
+                    console.log('Displaying trades and chart', new Date());
+                    this.displayTradesAndChart(() => {
+                      console.log('Done displaying trades and chart', new Date());
+                      callbackParallel3();
+                    });
+                  },
+                  (callbackParallel3) => {
+                    console.log('Displaying my transactions', new Date());
+                    this.displayMyTransactions(
+                      this.ordersResultByPair.orders,
+                      this.ordersResultByPair.blockNumber,
+                      () => {
+                        console.log('Done displaying my transactions', new Date());
+                        callbackParallel3();
+                      });
+                  }],
+                () => {
+                  callbackSeries(null, undefined);
+                });
             });
         }],
       () => {
-        console.log('Ending refresh');
+        console.log('Ending refresh', new Date());
         done();
         callback();
       });
   });
 };
-EtheRoox.prototype.refreshLoop = function refreshLoop() {
+EtherDelta.prototype.refreshLoop = function refreshLoop() {
   const self = this;
   function loop() {
     self.refresh(() => {
-      setTimeout(loop, 10 * 1000);
+      setTimeout(loop, 60 * 1000);
     });
   }
   loop();
 };
-EtheRoox.prototype.initDisplays = function initDisplays(callback) {
+EtherDelta.prototype.initDisplays = function initDisplays(callback) {
   this.loading(() => {});
   this.displayTokenGuidesDropdown(() => {});
   this.displayConnectionDescription(() => {});
@@ -3676,7 +3782,7 @@ EtheRoox.prototype.initDisplays = function initDisplays(callback) {
     true,
     true);
 };
-EtheRoox.prototype.loadWeb3 = function loadWeb3(callback) {
+EtherDelta.prototype.loadWeb3 = function loadWeb3(callback) {
   this.config = config;
   // web3
   if (typeof web3 !== 'undefined' && typeof Web3 !== 'undefined') {
@@ -3692,6 +3798,7 @@ EtheRoox.prototype.loadWeb3 = function loadWeb3(callback) {
           testnet: this.config.ethTestnet,
         };
         $('#pkDiv').hide();
+        $('#gasPrice').replaceWith('<p>Set in MetaMask</p>');
         setTimeout(() => {
           callbackUntil(null);
         }, 500);
@@ -3708,12 +3815,14 @@ EtheRoox.prototype.loadWeb3 = function loadWeb3(callback) {
       const coinbase = this.web3.eth.coinbase;
       console.log(`Coinbase: ${coinbase}`);
       $('#pkDiv').hide();
+      $('#gasPrice').replaceWith('<p>Set in MetaMask</p>');
     } catch (err) {
       this.connection = {
         connection: 'Proxy',
         provider: `https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io`,
         testnet: this.config.ethTestnet,
       };
+      $('#gasPrice').val(this.config.ethGasPrice / 1000000000);
       this.web3.setProvider(undefined);
     }
     callback();
@@ -3729,12 +3838,22 @@ EtheRoox.prototype.loadWeb3 = function loadWeb3(callback) {
     callback();
   }
 };
-EtheRoox.prototype.initContracts = function initContracts(callback) {
+EtherDelta.prototype.initContracts = function initContracts(callback) {
   this.web3.version.getNetwork((error, version) => {
     if (!error && version && Number(version) !== 1 && configName !== 'testnet') {
-      this.alertError('You are connected to the Ethereum testnet. Please connect to the Ethereum mainnet.');
+      this.dialogError('You are connected to the Ethereum testnet. Please connect to the Ethereum mainnet.');
     }
     this.config = config;
+    const gasCookie = utility.readCookie('ethGasPrice');
+    if (gasCookie) {
+      this.config.ethGasPrice = JSON.parse(gasCookie);
+    }
+    this.minGas = (this.config.ethGasPrice * this.config.gasDeposit) / (10 ** 18);
+    if (Array.isArray(this.config.apiServer)) {
+      this.config.apiServer = this.config.apiServer[
+        Math.floor(Math.random() * this.config.apiServer.length)];
+      console.log('Selected API', this.config.apiServer);
+    }
     // default selected token and base
     this.selectedToken = this.config.tokens.find(
       x => x.name === this.config.defaultPair.token) || this.config.tokens[1];
@@ -3759,26 +3878,39 @@ EtheRoox.prototype.initContracts = function initContracts(callback) {
     // const eventsCacheCookie = utility.readCookie(this.config.eventsCacheCookie);
     // if (eventsCacheCookie) eventsCache = JSON.parse(eventsCacheCookie);
     // connection
-    this.config.contractEtheRooxAddr = this.config.contractEtheRooxAddrs[0].addr;
+    this.config.contractEtherDeltaAddr = this.config.contractEtherDeltaAddrs[0].addr;
     // get accounts
     this.web3.eth.defaultAccount = this.config.ethAddr;
     this.web3.eth.getAccounts((e, accounts) => {
-      if (!e) {
+      if (!e && accounts && accounts.length > 0) {
         accounts.forEach((addr) => {
-          if (this.addrs.indexOf(addr) < 0) {
+          const index = this.addrs.indexOf(addr);
+          if (index < 0) {
             this.addrs.push(addr);
             this.pks.push(undefined);
           }
+        });
+        this.addrs.forEach((addr, i) => {
+          if (accounts.indexOf(addr) >= 0) {
+            this.addrKinds[i] = 'MetaMask';
+          }
+        });
+      } else if (this.connection.connection === 'RPC') {
+        this.dialogError('You are using MetaMask but you are not logged in. Please log in to MetaMask and refresh.');
+        ga('send', {
+          hitType: 'event',
+          eventCategory: 'Error',
+          eventAction: 'Ethereum - MetaMask not logged in',
         });
       }
     });
     // load contract
     utility.loadContract(
       this.web3,
-      this.config.contractEtheRoox,
-      this.config.contractEtheRooxAddr,
-      (err, contractEtheRoox) => {
-        this.contractEtheRoox = contractEtheRoox;
+      this.config.contractEtherDelta,
+      this.config.contractEtherDeltaAddr,
+      (err, contractEtherDelta) => {
+        this.contractEtherDelta = contractEtherDelta;
         utility.loadContract(
           this.web3,
           this.config.contractToken,
@@ -3818,20 +3950,23 @@ EtheRoox.prototype.initContracts = function initContracts(callback) {
       });
   });
 };
-EtheRoox.prototype.startEtheRoox = function startEtheRoox() {
-  console.log('Beginning init');
+EtherDelta.prototype.startEtherDelta = function startEtherDelta() {
+  console.log('Beginning init', new Date());
   this.loadWeb3(() => {
+    console.log('Web3 done', new Date());
     this.initContracts(() => {
+      console.log('Init contracts done', new Date());
       this.initDisplays(() => {
+        console.log('Displays done', new Date());
         this.refreshLoop();
       });
     });
   });
 };
 
-const etheRoox = new EtheRoox();
+const etherDelta = new EtherDelta();
 
-module.exports = { EtheRoox: etheRoox, utility };
+module.exports = { EtherDelta: etherDelta, utility };
 
 }).call(this,require("buffer").Buffer)
 },{"./common/utility.js":1,"./config.js":2,"./config_testnet.js":3,"./translations.js":323,"async":12,"async/dist/async.min.js":13,"bignumber.js":18,"buffer":373,"datejs":64,"js-sha256":153,"web3":272}],5:[function(require,module,exports){
@@ -35578,7 +35713,7 @@ module.exports={
         "spec": ">=6.2.3 <7.0.0",
         "type": "range"
       },
-      "/Users/zackcoburn/Sites/live/EtheRoox.github.io/node_modules/secp256k1"
+      "/Users/zackcoburn/Sites/live/etherdelta.github.io/node_modules/secp256k1"
     ]
   ],
   "_from": "elliptic@>=6.2.3 <7.0.0",
@@ -35612,7 +35747,7 @@ module.exports={
   "_shasum": "cac9af8762c85836187003c8dfe193e5e2eae5df",
   "_shrinkwrap": null,
   "_spec": "elliptic@^6.2.3",
-  "_where": "/Users/zackcoburn/Sites/live/EtheRoox.github.io/node_modules/secp256k1",
+  "_where": "/Users/zackcoburn/Sites/live/etherdelta.github.io/node_modules/secp256k1",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -64566,7 +64701,7 @@ module.exports={
         "spec": ">=5.1.0 <6.0.0",
         "type": "range"
       },
-      "/Users/zackcoburn/Sites/live/EtheRoox.github.io/node_modules/keythereum"
+      "/Users/zackcoburn/Sites/live/etherdelta.github.io/node_modules/keythereum"
     ]
   ],
   "_from": "elliptic@>=5.1.0 <6.0.0",
@@ -64597,7 +64732,7 @@ module.exports={
   "_shasum": "fa294b6563c6ddbc9ba3dc8594687ae840858f10",
   "_shrinkwrap": null,
   "_spec": "elliptic@^5.1.0",
-  "_where": "/Users/zackcoburn/Sites/live/EtheRoox.github.io/node_modules/keythereum",
+  "_where": "/Users/zackcoburn/Sites/live/etherdelta.github.io/node_modules/keythereum",
   "author": {
     "name": "Fedor Indutny",
     "email": "fedor@indutny.com"
@@ -88069,7 +88204,7 @@ module.exports={
         "spec": ">=2.2.0 <2.3.0",
         "type": "range"
       },
-      "/Users/zackcoburn/Sites/live/EtheRoox.github.io/node_modules/request"
+      "/Users/zackcoburn/Sites/live/etherdelta.github.io/node_modules/request"
     ]
   ],
   "_from": "tough-cookie@>=2.2.0 <2.3.0",
@@ -88103,7 +88238,7 @@ module.exports={
   "_shasum": "c83a1830f4e5ef0b93ef2a3488e724f8de016ac7",
   "_shrinkwrap": null,
   "_spec": "tough-cookie@~2.2.0",
-  "_where": "/Users/zackcoburn/Sites/live/EtheRoox.github.io/node_modules/request",
+  "_where": "/Users/zackcoburn/Sites/live/etherdelta.github.io/node_modules/request",
   "author": {
     "name": "Jeremy Stashewsky",
     "email": "jstashewsky@salesforce.com"
@@ -101460,17 +101595,17 @@ module.exports = {
     es: 'Español',
   },
   title: {
-    en: 'EtheRoox',
-    cn: 'EtheRoox',
-    fr: 'EtheRoox',
-    es: 'EtheRoox',
+    en: 'EtherDelta',
+    cn: 'EtherDelta',
+    fr: 'EtherDelta',
+    es: 'EtherDelta',
   },
   description: {
-    en: 'EtheRoox is a decentralized exchange for Ethereum tokens.',
-    cn: 'EtheRoox是去中心化的以太坊交易平台。',
-    fr: "EtheRoox est une bourse d'échange de jetons ethereum décentralisé.",
-    es: 'EtheRoox se ha posicionado como la primera bolsa de cambio de cryptomonedas y symbolicos de la blockchain Ethereum.',
-    // cn:'EtheRoox是无中心的以太坊交易平台。'
+    en: 'EtherDelta is a decentralized exchange for Ethereum tokens.',
+    cn: 'EtherDelta是去中心化的以太坊交易平台。',
+    fr: "EtherDelta est une bourse d'échange de jetons ethereum décentralisé.",
+    es: 'EtherDelta se ha posicionado como la primera bolsa de cambio de cryptomonedas y tokens de la blockchain Ethereum.',
+    // cn:'EtherDelta是无中心的以太坊交易平台。'
   },
   Smart_Contract: {
     en: 'Smart Contract',
@@ -101508,6 +101643,24 @@ module.exports = {
     fr: 'Le nombre de blocs Ethereum jusqu\'à ce que l\'ordre expire automatiquement. (Chaque bloc est de 14 secondes.)',
     es: 'El número de bloques Ethereum hasta que el pedido expire automáticamente. (Cada bloque es de 14 segundos.)',
   },
+  gas_price: {
+    en: 'Gas price',
+    cn: '气体价格',
+    fr: 'Prix de l\'essence',
+    es: 'Precio del gas',
+  },
+  gas_price_gwei: {
+    en: 'Gas price (gwei)',
+    cn: '气体价格 (gwei)',
+    fr: 'Prix de l\'essence (gwei)',
+    es: 'Precio del gas (gwei)',
+  },
+  set_gas_price: {
+    en: 'Set gas price',
+    cn: '气体价格',
+    fr: 'Prix de l\'essence',
+    es: 'Precio del gas',
+  },
   FAQ: {
     en: 'FAQ',
     cn: 'FAQ',
@@ -101539,11 +101692,10 @@ module.exports = {
     es: 'Profundidad',
   },
   only_7_days: {
-    en: 'Note: EtheRoox will only show transactions from the last 7 days.',
-    cn: 'Note: EtheRoox 只会显示近7天的交易记录',
-    // cn:'Note: EtheRoox will only show transactions from the last 7 days.'
-    fr: 'Note: EtheRoox ne montrera que les 7 derniers jours de transactions.',
-    es: 'Nota Bene: EtheRoox sólo mostrará las transacciones de los últimos 7 días.',
+    en: 'Note: EtherDelta will only show recent transactions.',
+    cn: '注意：EtherDelta只会显示最近的交易。',
+    fr: 'Remarque: EtherDelta affichera uniquement les transactions récentes.',
+    es: 'Nota: EtherDelta sólo mostrará transacciones recientes.',
   },
 
   announcements: {
@@ -101563,7 +101715,7 @@ module.exports = {
     cn: '订单',
     // cn:'订单簿'
     fr: 'Ordres',
-    es: 'Pedidas',
+    es: 'Pedidos',
   },
   follow_twitter: {
     en: 'Follow us on Twitter',
@@ -101577,7 +101729,7 @@ module.exports = {
     cn: '聊天',
     // cn:'聊'
     fr: 'Causerie',
-    es: 'Hogar del chat',
+    es: 'Chat',
   },
   send: {
     en: 'Send',
@@ -101596,7 +101748,7 @@ module.exports = {
     en: 'Pair',
     cn: '交易币种',
     fr: 'Paire',
-    es: 'Paras',
+    es: 'Parejas',
   },
   produced_etherboost: {
     en: 'Produced by Etherboost',
@@ -101604,12 +101756,12 @@ module.exports = {
     fr: 'Produit par Etherboost',
     es: 'Producido por Etherboost',
   },
-  etheroox_desc: {
-    en: 'EtheRoox &#8212; decentralized token exchange',
-    cn: 'EtheRoox &#8212; 去中心化交易',
-    // cn:'EtheRoox &#8212; 无中心交易'
-    fr: 'EtheRoox &#8212; échange de jetons décentralisé',
-    es: 'EtheRoox &#8212; échange de jetons décentralisé',
+  etherdelta_desc: {
+    en: 'EtherDelta &#8212; decentralized token exchange',
+    cn: 'EtherDelta &#8212; 去中心化交易',
+    // cn:'EtherDelta &#8212; 无中心交易'
+    fr: 'EtherDelta &#8212; échange de jetons décentralisé',
+    es: 'EtherDelta &#8212; échange de jetons décentralisé',
   },
   etheropt_desc: {
     en: 'EtherOpt &#8212; decentralized options exchange',
@@ -101779,16 +101931,14 @@ module.exports = {
   token: {
     en: 'Token',
     cn: '币种',
-    // cn:'币'
     fr: 'Jeton',
-    es: 'Simbolico',
+    es: 'Token',
   },
   tokens: {
     en: 'Tokens',
     cn: '币种',
-    // cn:'币'
     fr: 'Jetons',
-    es: 'Simbolicso',
+    es: 'Tokens',
   },
   aug032016: {
     en: 'August 3, 2016',
@@ -101797,10 +101947,9 @@ module.exports = {
     es: '3 Agosto, 2016',
   },
   aug032016_announcement: {
-    en: 'EtheRoox has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
-    cn: 'EtheRoox更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
-    // cn:'EtheRoox迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
-    fr: "EtheRoox a ete modifié pour un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il reste du solde à retirer.",
+    en: 'EtherDelta has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
+    cn: 'EtherDelta更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
+    fr: "EtherDelta a ete modifié pour un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il reste du solde à retirer.",
   },
   aug302016: {
     en: 'August 30, 2016',
@@ -101809,11 +101958,11 @@ module.exports = {
     es: '30 Agosto 2016',
   },
   aug302016_announcement: {
-    en: 'EtheRoox has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
-    cn: 'EtheRoox更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
-    // cn:'EtheRoox迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
-    fr: "EtheRoox utilise un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il vous reste du solde à retirer.",
-    es: 'EtheRoox utiliza un nuevo contrato inteligente.',
+    en: 'EtherDelta has moved to a new smart contract. Go to the bottom of the page and switch to the old one if you have a balance there you need to withdraw.',
+    cn: 'EtherDelta更新了智能合约。如果你要提取余额，请到本页底部转成旧的合约并进行提取。',
+    // cn:'EtherDelta迁移到了新的智能合约。如果你要提取余额，请到本页底部转成旧的。'
+    fr: "EtherDelta utilise un nouveau smart contract. Allez au bas de page et permutez le avec l'ancien s'il vous reste du solde à retirer.",
+    es: 'EtherDelta utiliza un nuevo contrato inteligente.',
   },
   new_account: {
     en: 'New account',
@@ -101875,11 +102024,11 @@ module.exports = {
     fr: 'Portefeuille',
     es: 'Cartera',
   },
-  balance_EtheRoox: {
-    en: 'EtheRoox',
-    cn: 'EtheRoox',
-    fr: 'EtheRoox',
-    es: 'EtheRoox',
+  balance_etherdelta: {
+    en: 'EtherDelta',
+    cn: 'EtherDelta',
+    fr: 'EtherDelta',
+    es: 'EtherDelta',
   },
   amount: {
     en: 'Amount',
@@ -102063,9 +102212,9 @@ module.exports = {
     es: 'Arriba a la izquierda, hay dos menús desplegables para usar para seleccionar el par de divisas para intercambiar.',
   },
   deposit_withdraw_2: {
-    en: 'Under "Balances," you will see your balance for each of the two currencies you selected. This is the balance you have deposited to EtheRoox from your Ethereum account.',
+    en: 'Under "Balances," you will see your balance for each of the two currencies you selected. This is the balance you have deposited to EtherDelta from your Ethereum account.',
     cn: '在“余额”下面，你可以看到两种币的各自的余额，这是从你的以太坊账号充值的余额。',
-    fr: 'Sous "Soldes" vous trouverez le solde pour chacune des deux devises selectionnées. C\'est le solde que vous venez de déposer sur EtheRoox depuis votre compte Ethereum',
+    fr: 'Sous "Soldes" vous trouverez le solde pour chacune des deux devises selectionnées. C\'est le solde que vous venez de déposer sur etherdelta depuis votre compte Ethereum',
     es: 'En "Saldos" se encuentra el equilibrio para cada una de las dos monedas sélectionnées.',
   },
   deposit_withdraw_3: {
@@ -102075,8 +102224,8 @@ module.exports = {
     es: 'Para depositar, retirar o transferencia, por favor Desplazamiento en la parte inferior de la página. Busque la sección "Ventas.',
   },
   deposit_withdraw_4: {
-    en: 'To deposit, click the "Deposit" tab, pick a token, enter an amount you would like to deposit from your Ethereum account into EtheRoox, and click "Deposit."',
-    cn: '充值点“充值”，选择一种币，输入从以太坊账号进入EtheRoox的充值数量，再点“充值”。',
+    en: 'To deposit, click the "Deposit" tab, pick a token, enter an amount you would like to deposit from your Ethereum account into EtherDelta, and click "Deposit."',
+    cn: '充值点“充值”，选择一种币，输入从以太坊账号进入EtherDelta的充值数量，再点“充值”。',
     fr: 'Pour déposer, cliquer sur "Deposit" tab, choisir un jeton, entrer le montant à déposer depuis votre compte Ethereum vers Etherdelta, puis cliquer "Deposit".',
     es: 'Para abonar, haga clic en la pestaña "depósito", elegir un modo, ingrese la cantidad a depositar desde su cuenta a Etereum Etherdelta y haga clic en "depósito.',
   },
@@ -102111,10 +102260,10 @@ module.exports = {
     es: 'Es posible que el comercio un símbolo que no aparece en la lista, seleccione "Otros" y rellena los campos del formulario. Differentes simbolicos tienen differentes multiplicadores, es pues indispensable cumplir el formulario con cuidado.',
   },
   trade_3: {
-    en: 'EtheRoox supports resting orders (adding liquidity) and trading against existing resting orders (taking liquidity).',
-    cn: 'EtheRoox支持“待定下单”（resting order）来增加流动性，以及交易“待定下单”来减少流动性。',
-    fr: "EtheRoox supportes les ordres restant (l'ajout de liquidite) et marchander contre des ordres restant (prise de liquidite).",
-    es: 'EtheRoox apoya descansando órdenes tales como la adición de liquidez y el comercio contre órdenes existentes como descansando Tomando liquidez..',
+    en: 'EtherDelta supports resting orders (adding liquidity) and trading against existing resting orders (taking liquidity).',
+    cn: 'EtherDelta支持“待定下单”（resting order）来增加流动性，以及交易“待定下单”来减少流动性。',
+    fr: "EtherDelta supportes les ordres restant (l'ajout de liquidite) et marchander contre des ordres restant (prise de liquidite).",
+    es: 'EtherDelta apoya descansando órdenes tales como la adición de liquidez y el comercio contre órdenes existentes como descansando Tomando liquidez..',
   },
   trade_4: {
     en: 'To create a resting order, fill out the "Buy" or "Sell" form at the top of the page. The order expires in the number of blocks you specify (1 block &#8776; 15 seconds).',
@@ -102129,8 +102278,8 @@ module.exports = {
     es: 'Si desea cancelar su pedido, simplemente haga clic en su pedido aparecerá en el libro de órdenes y pulse el botón "Cancelar". Esto enviará una transacción Ethereum, una vez confirmada, canceló la orden. Cabe señalar que induce un coste de gas (Tarifas de transacción Ethereum), mientras que la colocación de un pedido restante hasta su expiración no cuesta de gas.',
   },
   trade_6: {
-    en: 'When you submit a resting order, it gets broadcast to the world. The current broadcast channel is a Gitter chat room, but EtheRoox also supports using Ethereum events as a fallback broadcast mechanism.',
-    cn: '但你提交了一个“待定下单”后，它会广播到全球。现在的传播渠道是Gitter聊天室，但是EtheRoox也支持以太坊事件机制，用来保底。',
+    en: 'When you submit a resting order, it gets broadcast to the world. The current broadcast channel is a Gitter chat room, but EtherDelta also supports using Ethereum events as a fallback broadcast mechanism.',
+    cn: '但你提交了一个“待定下单”后，它会广播到全球。现在的传播渠道是Gitter聊天室，但是EtherDelta也支持以太坊事件机制，用来保底。',
     fr: "Quand vous soumettez un ordre restant, il se diffuse dans le monde entier. Le canal de causerie principal s'appele Gitter chat room, mais Etherdelta supporte egalement des evenements ethereum en tant que moyen de diffusion alternative.",
     es: 'Cuando se envía una orden de reposo, que se transmitió al mundo. El canal de difusión actual es una sala de chat Gitter, Etherdelta también promueve eventos Ethereum como un medio alternativo de distribución.',
   },
@@ -102141,10 +102290,10 @@ module.exports = {
     es: 'La interfaz gráfica de usuario detecta nuevos pedidos recibidos y que se muestran en el libro de orden (izquierda venta, compra derecha).',
   },
   trade_8: {
-    en: 'A resting order represents a cryptographically signed intent to trade. Up until your order expires or is cancelled, anyone who has seen it can trade against it, assuming both traders have enough funds in their EtheRoox accounts. The GUI filters out orders that do not have funds to back them up. Partial fills are supported.',
+    en: 'A resting order represents a cryptographically signed intent to trade. Up until your order expires or is cancelled, anyone who has seen it can trade against it, assuming both traders have enough funds in their EtherDelta accounts. The GUI filters out orders that do not have funds to back them up. Partial fills are supported.',
     cn: '“待定下单”代表加密签名过的交易意向。在你的订单过期或取消以前，看见这个订单的任何人可以与它交易（前提是双方账号中有足够的币）。页面会过滤掉币的数量不够的订单。订单也可以部分成交。',
-    fr: "Un ordre restant represente une intention de commercer cryptographiquement signée. Jusqu'à ce que votre commande expire ou soit annulée, quiconque l'a vu peut échanger contre elle, en supposant que les deux commerçants disposent de suffisamment de fonds dans leurs comptes EtheRoox. Le remplissage partiel de l'ordre est egalement supporte.",
-    es: 'Una orden restante representa intención de negociar, firmado criptográficamente. Hasta que el pedido se cancela o expira, cualquiera puede intercambiar sierra en contra de ella, suponiendo que ambos operadores tienen fondos suficientes en sus cuentas EtheRoox. También se admite el llenado parcial de la orden.',
+    fr: "Un ordre restant represente une intention de commercer cryptographiquement signée. Jusqu'à ce que votre commande expire ou soit annulée, quiconque l'a vu peut échanger contre elle, en supposant que les deux commerçants disposent de suffisamment de fonds dans leurs comptes EtherDelta. Le remplissage partiel de l'ordre est egalement supporte.",
+    es: 'Una orden restante representa intención de negociar, firmado criptográficamente. Hasta que el pedido se cancela o expira, cualquiera puede intercambiar sierra en contra de ella, suponiendo que ambos operadores tienen fondos suficientes en sus cuentas EtherDelta. También se admite el llenado parcial de la orden.',
   },
   trade_9: {
     en: 'To trade against an existing resting order, click "Buy" or "Sell" next to it in the order book and type in the volume you want to trade. The GUI will do one last check that the trade can cross (the funds are there and the order hasn\'t already traded), but if someone submits a transaction right before you do, your Ethereum transaction will fail because the order already traded.',
@@ -102300,7 +102449,7 @@ module.exports = {
     en: 'Trades',
     cn: '交易',
     fr: 'Trades',
-    es: 'Trades',
+    es: 'Historial',
   },
   auto_refresh: {
     en: 'Auto refresh',
@@ -102312,7 +102461,7 @@ module.exports = {
     en: 'My transactions',
     cn: '我的交易',
     fr: 'Mes transactions',
-    es: 'Meis transacciones',
+    es: 'Mis transacciones',
   },
   or: {
     en: 'or',
@@ -123255,4 +123404,3 @@ exports.createContext = Script.createContext = function (context) {
 arguments[4][322][0].apply(exports,arguments)
 },{"dup":322}]},{},[4])(4)
 });
-

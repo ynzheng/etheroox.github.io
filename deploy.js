@@ -69,8 +69,8 @@ if (cliOptions.help) {
   web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
   // Config
-  const solidityFile = './smart_contract/etheroox.sol';
-  const contractName = 'EtheRoox';
+  const solidityFile = './smart_contract/etherdelta.sol';
+  const contractName = 'EtherDelta';
   const solcVersion = 'v0.4.9+commit.364da425';
   const address = cliOptions.address;
   const admin = cliOptions.admin;

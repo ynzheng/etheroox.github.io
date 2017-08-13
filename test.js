@@ -55,11 +55,11 @@ describe('Test', function test() {
   const port = 12345;
   let server;
   let accounts;
-  let contractEtheRoox;
+  let contractEtherDelta;
   let contractToken1;
   let contractToken2;
   let contractAccountLevels;
-  let contractEtheRooxAddr;
+  let contractEtherDeltaAddr;
   let contractToken1Addr;
   let contractToken2Addr;
   let contractAccountLevelsAddr;
@@ -95,35 +95,35 @@ describe('Test', function test() {
 
   describe('Contract scenario', () => {
     it('Should add a token1 contract to the network', (done) => {
-      deploy(web3, config.contractEtheRoox, 'ReserveToken', [], accounts[0], (err, contract) => {
+      deploy(web3, config.contractEtherDelta, 'ReserveToken', [], accounts[0], (err, contract) => {
         contractToken1 = contract.contract;
         contractToken1Addr = contract.addr;
         done();
       });
     });
     it('Should add a token2 contract to the network', (done) => {
-      deploy(web3, config.contractEtheRoox, 'ReserveToken', [], accounts[0], (err, contract) => {
+      deploy(web3, config.contractEtherDelta, 'ReserveToken', [], accounts[0], (err, contract) => {
         contractToken2 = contract.contract;
         contractToken2Addr = contract.addr;
         done();
       });
     });
     it('Should add an AccountLevels contract to the network', (done) => {
-      deploy(web3, config.contractEtheRoox, 'AccountLevelsTest', [], accounts[0], (err, contract) => {
+      deploy(web3, config.contractEtherDelta, 'AccountLevelsTest', [], accounts[0], (err, contract) => {
         contractAccountLevels = contract.contract;
         contractAccountLevelsAddr = contract.addr;
         done();
       });
     });
-    it('Should add the EtheRoox contract to the network', (done) => {
+    it('Should add the EtherDelta contract to the network', (done) => {
       feeMake = new BigNumber(utility.ethToWei(0.0005));
       feeTake = new BigNumber(utility.ethToWei(0.003));
       feeRebate = new BigNumber(utility.ethToWei(0.002));
       admin = accounts[0];
       feeAccount = accounts[0];
-      deploy(web3, config.contractEtheRoox, 'EtheRoox', [admin, feeAccount, contractAccountLevelsAddr, feeMake, feeTake, feeRebate], accounts[0], (err, contract) => {
-        contractEtheRoox = contract.contract;
-        contractEtheRooxAddr = contract.addr;
+      deploy(web3, config.contractEtherDelta, 'EtherDelta', [admin, feeAccount, contractAccountLevelsAddr, feeMake, feeTake, feeRebate], accounts[0], (err, contract) => {
+        contractEtherDelta = contract.contract;
+        contractEtherDeltaAddr = contract.addr;
         done();
       });
     });
@@ -143,22 +143,22 @@ describe('Test', function test() {
           done();
         });
     });
-    it('Should add funds to EtheRoox', (done) => {
+    it('Should add funds to etherdelta', (done) => {
       function addEtherFunds(amount, account, callback) {
-        utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'deposit', [{ gas: 1000000, value: amount }], account, undefined, 0, (err) => {
+        utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'deposit', [{ gas: 1000000, value: amount }], account, undefined, 0, (err) => {
           assert.equal(err, undefined);
-          utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [0, account], (err2, result) => {
+          utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [0, account], (err2, result) => {
             assert.equal(result.equals(amount), true);
             callback();
           });
         });
       }
       function addFunds(amount, contractToken, contractTokenAddr, account, callback) {
-        utility.testSend(web3, contractToken, contractTokenAddr, 'approve', [contractEtheRooxAddr, amount, { gas: 1000000, value: 0 }], account, undefined, 0, (err) => {
+        utility.testSend(web3, contractToken, contractTokenAddr, 'approve', [contractEtherDeltaAddr, amount, { gas: 1000000, value: 0 }], account, undefined, 0, (err) => {
           assert.equal(err, undefined);
-          utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'depositToken', [contractTokenAddr, amount, { gas: 1000000, value: 0 }], account, undefined, 0, (err2) => {
+          utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'depositToken', [contractTokenAddr, amount, { gas: 1000000, value: 0 }], account, undefined, 0, (err2) => {
             assert.equal(err2, undefined);
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractTokenAddr, account], (err3, result) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractTokenAddr, account], (err3, result) => {
               assert.equal(result.equals(amount), true);
               callback();
             });
@@ -190,24 +190,24 @@ describe('Test', function test() {
             assert.equal(err2, undefined);
             utility.testCall(web3, contractAccountLevels, contractAccountLevelsAddr, 'accountLevel', [account1], (err3, level) => {
               assert.equal(err3, undefined);
-              utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err4, initialFeeBalance1) => {
-                utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err5, initialFeeBalance2) => {
-                  utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account1], (err6, initialBalance11) => {
-                    utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account2], (err7, initialBalance12) => {
-                      utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account1], (err8, initialBalance21) => {
-                        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account2], (err9, initialBalance22) => {
-                          utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'order', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, { gas: 1000000, value: 0 }], account1, undefined, 0, (err10) => {
+              utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err4, initialFeeBalance1) => {
+                utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err5, initialFeeBalance2) => {
+                  utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account1], (err6, initialBalance11) => {
+                    utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account2], (err7, initialBalance12) => {
+                      utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account1], (err8, initialBalance21) => {
+                        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account2], (err9, initialBalance22) => {
+                          utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'order', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, { gas: 1000000, value: 0 }], account1, undefined, 0, (err10) => {
                             assert.equal(err10, undefined);
-                            utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0', amount, { gas: 1000000, value: 0 }], account2, undefined, 0, (err11) => {
+                            utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0', amount, { gas: 1000000, value: 0 }], account2, undefined, 0, (err11) => {
                               assert.equal(err11, undefined);
-                              utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err12, feeBalance1) => {
-                                utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err13, feeBalance2) => {
-                                  utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account1], (err14, balance11) => {
-                                    utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account2], (err15, balance12) => {
-                                      utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account1], (err16, balance21) => {
-                                        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account2], (err17, balance22) => {
-                                          utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err18, availableVolume) => {
-                                            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err19, amountFilled) => {
+                              utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err12, feeBalance1) => {
+                                utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err13, feeBalance2) => {
+                                  utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account1], (err14, balance11) => {
+                                    utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account2], (err15, balance12) => {
+                                      utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account1], (err16, balance21) => {
+                                        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account2], (err17, balance22) => {
+                                          utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err18, availableVolume) => {
+                                            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err19, amountFilled) => {
                                               const feeMakeXfer = amount.times(feeMake).divToInt(unit);
                                               const feeTakeXfer = amount.times(feeTake).divToInt(unit);
                                               let feeRebateXfer = 0;
@@ -297,29 +297,29 @@ describe('Test', function test() {
         web3.eth.getBlockNumber((err, blockNumber) => {
           if (err) callback(err);
           expires += blockNumber;
-          const condensed = utility.pack([contractEtheRooxAddr, tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
+          const condensed = utility.pack([contractEtherDeltaAddr, tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
           const hash = sha256(new Buffer(condensed, 'hex'));
           utility.testSend(web3, contractAccountLevels, contractAccountLevelsAddr, 'setAccountLevel', [account1, accountLevel, { gas: 1000000, value: 0 }], account1, undefined, 0, (err2) => {
             assert.equal(err2, undefined);
             utility.testCall(web3, contractAccountLevels, contractAccountLevelsAddr, 'accountLevel', [account1], (err3, level) => {
               assert.equal(err3, undefined);
-              utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err4, initialFeeBalance1) => {
-                utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err5, initialFeeBalance2) => {
-                  utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account1], (err6, initialBalance11) => {
-                    utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account2], (err7, initialBalance12) => {
-                      utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account1], (err8, initialBalance21) => {
-                        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account2], (err9, initialBalance22) => {
+              utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err4, initialFeeBalance1) => {
+                utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err5, initialFeeBalance2) => {
+                  utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account1], (err6, initialBalance11) => {
+                    utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account2], (err7, initialBalance12) => {
+                      utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account1], (err8, initialBalance21) => {
+                        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account2], (err9, initialBalance22) => {
                           utility.sign(web3, account1, hash, undefined, (err10, sig) => {
-                            utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s, amount, { gas: 1000000, value: 0 }], account2, undefined, 0, (err11) => {
+                            utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s, amount, { gas: 1000000, value: 0 }], account2, undefined, 0, (err11) => {
                               assert.equal(err11, undefined);
-                              utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err12, feeBalance1) => {
-                                utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err13, feeBalance2) => {
-                                  utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account1], (err14, balance11) => {
-                                    utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account2], (err15, balance12) => {
-                                      utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account1], (err16, balance21) => {
-                                        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account2], (err17, balance22) => {
-                                          utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err18, availableVolume) => {
-                                            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err19, amountFilled) => {
+                              utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, feeAccount], (err12, feeBalance1) => {
+                                utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, feeAccount], (err13, feeBalance2) => {
+                                  utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account1], (err14, balance11) => {
+                                    utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account2], (err15, balance12) => {
+                                      utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account1], (err16, balance21) => {
+                                        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account2], (err17, balance22) => {
+                                          utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err18, availableVolume) => {
+                                            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err19, amountFilled) => {
                                               const feeMakeXfer = amount.times(feeMake).divToInt(unit);
                                               const feeTakeXfer = amount.times(feeTake).divToInt(unit);
                                               let feeRebateXfer = 0;
@@ -409,17 +409,17 @@ describe('Test', function test() {
         web3.eth.getBlockNumber((err, blockNumber) => {
           if (err) callback(err);
           expires += blockNumber;
-          utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'order', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, { gas: 1000000, value: 0 }], account1, undefined, 0, (err2) => {
+          utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'order', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, { gas: 1000000, value: 0 }], account1, undefined, 0, (err2) => {
             assert.equal(err2, undefined);
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err3, result3) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err3, result3) => {
               assert.equal(result3.equals(amountGet), true);
-              utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err4, result4) => {
+              utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err4, result4) => {
                 assert.equal(result4.equals(new BigNumber(0)), true);
-                utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'cancelOrder', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, 0, '0x0', '0x0', { gas: 1000000, value: 0 }], account1, undefined, 0, (err5) => {
+                utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'cancelOrder', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, 0, '0x0', '0x0', { gas: 1000000, value: 0 }], account1, undefined, 0, (err5) => {
                   assert.equal(err5, undefined);
-                  utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err6, result6) => {
+                  utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err6, result6) => {
                     assert.equal(result6.equals(new BigNumber(0)), true);
-                    utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err7, result7) => {
+                    utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0'], (err7, result7) => {
                       assert.equal(result7.equals(amountGet), true);
                       callback();
                     });
@@ -468,18 +468,18 @@ describe('Test', function test() {
         web3.eth.getBlockNumber((err, blockNumber) => {
           if (err) callback(err);
           expires += blockNumber;
-          const condensed = utility.pack([contractEtheRooxAddr, tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
+          const condensed = utility.pack([contractEtherDeltaAddr, tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
           const hash = sha256(new Buffer(condensed, 'hex'));
           utility.sign(web3, account1, hash, undefined, (err2, sig) => {
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err3, result3) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err3, result3) => {
               assert.equal(result3.equals(amountGet), true);
-              utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err4, result4) => {
+              utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err4, result4) => {
                 assert.equal(result4.equals(new BigNumber(0)), true);
-                utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'cancelOrder', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, sig.v, sig.r, sig.s, { gas: 1000000, value: 0 }], account1, undefined, 0, (err5) => {
+                utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'cancelOrder', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, sig.v, sig.r, sig.s, { gas: 1000000, value: 0 }], account1, undefined, 0, (err5) => {
                   assert.equal(err5, undefined);
-                  utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err6, result6) => {
+                  utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err6, result6) => {
                     assert.equal(result6.equals(new BigNumber(0)), true);
-                    utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err7, result7) => {
+                    utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'amountFilled', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, sig.v, sig.r, sig.s], (err7, result7) => {
                       assert.equal(result7.equals(amountGet), true);
                       callback();
                     });
@@ -532,13 +532,13 @@ describe('Test', function test() {
         const expires = blockNumber + 1000;
         const orderNonce = 11;
         const user = accounts[1];
-        const condensed = utility.pack([contractEtheRooxAddr, tokenGet, amountGet.toNumber(), tokenGive, amountGive.toNumber(), expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
+        const condensed = utility.pack([contractEtherDeltaAddr, tokenGet, amountGet.toNumber(), tokenGive, amountGive.toNumber(), expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
         const hash = sha256(new Buffer(condensed, 'hex'));
         const amount = amountGet.div(new BigNumber(2));
         utility.sign(web3, user, hash, undefined, (err2, sig) => {
-          utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s, amount, { gas: 1000000, value: 0 }], accounts[2], undefined, 0, (err3) => {
+          utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s, amount, { gas: 1000000, value: 0 }], accounts[2], undefined, 0, (err3) => {
             assert.equal(err3, undefined);
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s], (err4, result4) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s], (err4, result4) => {
               assert.equal(result4.equals(amountGet.minus(amount)), true);
               done();
             });
@@ -556,13 +556,13 @@ describe('Test', function test() {
         const expires = blockNumber + 1000;
         const orderNonce = 12;
         const user = accounts[1];
-        const condensed = utility.pack([contractEtheRooxAddr, tokenGet, amountGet.toNumber(), tokenGive, amountGive.toNumber(), expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
+        const condensed = utility.pack([contractEtherDeltaAddr, tokenGet, amountGet.toNumber(), tokenGive, amountGive.toNumber(), expires, orderNonce], [160, 160, 256, 160, 256, 256, 256]);
         const hash = sha256(new Buffer(condensed, 'hex'));
         const amount = amountGet.div(new BigNumber(2));
         utility.sign(web3, user, hash, undefined, (err2, sig) => {
-          utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s, amount, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err3) => {
+          utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s, amount, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err3) => {
             assert.equal(err3, undefined);
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s], (err4, result4) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'availableVolume', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, user, sig.v, sig.r, sig.s], (err4, result4) => {
               assert.equal(result4.equals(amountGet.minus(amount)), true);
               done();
             });
@@ -580,9 +580,9 @@ describe('Test', function test() {
             assert.equal(err2, undefined);
             utility.testCall(web3, contractAccountLevels, contractAccountLevelsAddr, 'accountLevel', [account1], (err3) => {
               assert.equal(err3, undefined);
-              utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'order', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, { gas: 1000000, value: 0 }], account1, undefined, 0, (err4) => {
+              utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'order', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, { gas: 1000000, value: 0 }], account1, undefined, 0, (err4) => {
                 assert.equal(err4, undefined);
-                utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0', amount, { gas: 1000000, value: 0 }], account2, undefined, 0, (err5) => {
+                utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'trade', [tokenGet, amountGet, tokenGive, amountGive, expires, orderNonce, account1, 0, '0x0', '0x0', amount, { gas: 1000000, value: 0 }], account2, undefined, 0, (err5) => {
                   assert.equal(!err5, false);
                   callback();
                 });
@@ -593,10 +593,10 @@ describe('Test', function test() {
       }
       const account1 = accounts[1];
       const account2 = accounts[2];
-      utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account1], () => {
-        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, account2], (err2, initialBalance12) => {
-          utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account1], (err3, initialBalance21) => {
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken2Addr, account2], () => {
+      utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account1], () => {
+        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, account2], (err2, initialBalance12) => {
+          utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account1], (err3, initialBalance21) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken2Addr, account2], () => {
               const trades = [
                 // try to trade more than available size
                 {
@@ -654,11 +654,11 @@ describe('Test', function test() {
     });
     it('Should do a token withdrawal', (done) => {
       const amount = new BigNumber(utility.ethToWei(100));
-      utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, accounts[1]], (err, initialBalance) => {
+      utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, accounts[1]], (err, initialBalance) => {
         utility.testCall(web3, contractToken1, contractToken1Addr, 'balanceOf', [accounts[1]], (err2, initialTokenBalance) => {
-          utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'withdrawToken', [contractToken1Addr, amount, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err3) => {
+          utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'withdrawToken', [contractToken1Addr, amount, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err3) => {
             assert.equal(err3, undefined);
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [contractToken1Addr, accounts[1]], (err4, finalBalance) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [contractToken1Addr, accounts[1]], (err4, finalBalance) => {
               utility.testCall(web3, contractToken1, contractToken1Addr, 'balanceOf', [accounts[1]], (err5, finalTokenBalance) => {
                 utility.testCall(web3, contractToken1, contractToken1Addr, 'balanceOf', [accounts[1]], () => {
                   assert.equal(finalBalance.equals(initialBalance.sub(amount)), true);
@@ -673,12 +673,12 @@ describe('Test', function test() {
     });
     it('Should do an Ether withdrawal', (done) => {
       const amount = new BigNumber(utility.ethToWei(100));
-      utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [0, accounts[1]], (err, initialBalance) => {
-        web3.eth.getBalance(contractEtheRooxAddr, (err2, initialEtherBalance) => {
-          utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'withdraw', [amount, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err3) => {
+      utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [0, accounts[1]], (err, initialBalance) => {
+        web3.eth.getBalance(contractEtherDeltaAddr, (err2, initialEtherBalance) => {
+          utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'withdraw', [amount, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err3) => {
             assert.equal(err3, undefined);
-            utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'balanceOf', [0, accounts[1]], (err4, finalBalance) => {
-              web3.eth.getBalance(contractEtheRooxAddr, (err5, finalEtherBalance) => {
+            utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'balanceOf', [0, accounts[1]], (err4, finalBalance) => {
+              web3.eth.getBalance(contractEtherDeltaAddr, (err5, finalEtherBalance) => {
                 assert.equal(finalBalance.equals(initialBalance.sub(amount)), true);
                 assert.equal(finalEtherBalance.equals(initialEtherBalance.sub(amount)), true);
                 done();
@@ -689,51 +689,51 @@ describe('Test', function test() {
       });
     });
     it('Should change the account levels address and fail', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeAccountLevelsAddr', ['0x0', { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeAccountLevelsAddr', ['0x0', { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the account levels address and succeed', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeAccountLevelsAddr', ['0x0', { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeAccountLevelsAddr', ['0x0', { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
         assert.equal(err, undefined);
-        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'accountLevelsAddr', [], (err2, result2) => {
+        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'accountLevelsAddr', [], (err2, result2) => {
           assert.equal(result2 === '0x0000000000000000000000000000000000000000', true);
           done();
         });
       });
     });
     it('Should change the fee account and fail', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeAccount', ['0x0', { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeAccount', ['0x0', { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the fee account and succeed', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeAccount', [accounts[1], { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeAccount', [accounts[1], { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
         assert.equal(err, undefined);
-        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'feeAccount', [], (err2, result2) => {
+        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'feeAccount', [], (err2, result2) => {
           assert.equal(result2 === accounts[1], true);
           done();
         });
       });
     });
     it('Should change the make fee and fail', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeMake', [feeMake, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeMake', [feeMake, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the make fee and fail because the make fee can only decrease', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeMake', [feeMake.mul(2), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeMake', [feeMake.mul(2), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the make fee and succeed', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeMake', [feeMake.div(2), { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeMake', [feeMake.div(2), { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
         assert.equal(err, undefined);
-        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'feeMake', [], (err2, result2) => {
+        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'feeMake', [], (err2, result2) => {
           assert.equal(result2.equals(feeMake.div(2)), true);
           feeMake = result2;
           done();
@@ -741,27 +741,27 @@ describe('Test', function test() {
       });
     });
     it('Should change the take fee and fail', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeTake', [feeTake, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeTake', [feeTake, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the take fee and fail because the take fee can only decrease', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeTake', [feeTake.mul(2), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeTake', [feeTake.mul(2), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the take fee and fail because the take fee must exceed the rebate fee', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeTake', [feeTake.minus(new BigNumber(1)), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeTake', [feeTake.minus(new BigNumber(1)), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the take fee and succeed', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeTake', [feeRebate.plus(new BigNumber(2)), { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeTake', [feeRebate.plus(new BigNumber(2)), { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
         assert.equal(err, undefined);
-        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'feeTake', [], (err2, result2) => {
+        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'feeTake', [], (err2, result2) => {
           assert.equal(result2.equals(feeRebate.plus(new BigNumber(2))), true);
           feeTake = result2;
           done();
@@ -769,27 +769,27 @@ describe('Test', function test() {
       });
     });
     it('Should change the rebate fee and fail', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeRebate', [feeRebate, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeRebate', [feeRebate, { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the rebate fee and fail because the rebate fee can only increase', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeRebate', [feeRebate.div(2), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeRebate', [feeRebate.div(2), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the rebate fee and fail because the rebate fee must not exceed the take fee', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeRebate', [feeTake.plus(new BigNumber(1)), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeRebate', [feeTake.plus(new BigNumber(1)), { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the rebate fee and succeed', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeFeeRebate', [feeTake.minus(new BigNumber(1)), { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeFeeRebate', [feeTake.minus(new BigNumber(1)), { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
         assert.equal(err, undefined);
-        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'feeRebate', [], (err2, result2) => {
+        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'feeRebate', [], (err2, result2) => {
           assert.equal(result2.equals(feeTake.minus(new BigNumber(1))), true);
           feeRebate = result2;
           done();
@@ -797,15 +797,15 @@ describe('Test', function test() {
       });
     });
     it('Should change the admin account and fail', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeAdmin', [accounts[1], { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeAdmin', [accounts[1], { gas: 1000000, value: 0 }], accounts[1], undefined, 0, (err) => {
         assert.equal(!err, false);
         done();
       });
     });
     it('Should change the admin account and succeed', (done) => {
-      utility.testSend(web3, contractEtheRoox, contractEtheRooxAddr, 'changeAdmin', [accounts[1], { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
+      utility.testSend(web3, contractEtherDelta, contractEtherDeltaAddr, 'changeAdmin', [accounts[1], { gas: 1000000, value: 0 }], admin, undefined, 0, (err) => {
         assert.equal(err, undefined);
-        utility.testCall(web3, contractEtheRoox, contractEtheRooxAddr, 'admin', [], (err2, result2) => {
+        utility.testCall(web3, contractEtherDelta, contractEtherDeltaAddr, 'admin', [], (err2, result2) => {
           assert.equal(result2 === accounts[1], true);
           admin = result2;
           done();

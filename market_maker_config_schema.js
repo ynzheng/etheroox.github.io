@@ -29,7 +29,7 @@ const pairs = {
     properties: {
       pair: {
         title: 'Pair',
-        description: 'The pair name should match what you see on DecentrEx, for example MKR/ETH',
+        description: 'The pair name should match what you see on EtherDelta, for example MKR/ETH',
         type: 'string',
       },
       expires: {

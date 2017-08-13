@@ -5,25 +5,37 @@ $(() => {
   $('body').on('click', '#accountSubmit', (e) => {
     e.preventDefault();
     $('#accountModal').modal('hide');
-    bundle.EtheRoox.addAccount($('#accountAddr').val(), $('#accountPk').val());
+    bundle.EtherDelta.addAccount($('#accountAddr').val(), $('#accountPk').val());
   });
 });
 function buyChange() { // eslint-disable-line no-unused-vars
   const amount = Number($('#buyAmount').val());
   const price = Number($('#buyPrice').val());
   const total = (amount * price).toFixed(3);
+  const isInCross = bundle.EtherDelta.isInCross(price, 'buy');
+  if (isInCross) {
+    $('#buyInCross').html(`Your order is in cross with the best sell order in the order book (price = ${isInCross}).`);
+  } else {
+    $('#buyInCross').html('');
+  }
   $('#buyTotal').val(total);
 }
 function sellChange() { // eslint-disable-line no-unused-vars
   const amount = Number($('#sellAmount').val());
   const price = Number($('#sellPrice').val());
   const total = (amount * price).toFixed(3);
+  const isInCross = bundle.EtherDelta.isInCross(price, 'sell');
+  if (isInCross) {
+    $('#sellInCross').html(`Your order is in cross with the best buy order in the order book (price = ${isInCross}).`);
+  } else {
+    $('#sellInCross').html('');
+  }
   $('#sellTotal').val(total);
 }
 $(() => {
   $('body').on('click', '#buySubmit', (e) => {
     e.preventDefault();
-    bundle.EtheRoox.order(
+    bundle.EtherDelta.order(
       'buy',
       $('#buyAmount').val(),
       $('#buyPrice').val(),
@@ -34,7 +46,7 @@ $(() => {
 $(() => {
   $('body').on('click', '#sellSubmit', (e) => {
     e.preventDefault();
-    bundle.EtheRoox.order(
+    bundle.EtherDelta.order(
       'sell',
       $('#sellAmount').val(),
       $('#sellPrice').val(),
@@ -92,14 +104,14 @@ $(() => {
   $('body').on('click', '#buyCrossSubmit', (e) => {
     e.preventDefault();
     $('#buyCrossModal').modal('hide');
-    bundle.DecentrEx.trade('buy', JSON.parse($('#buyCrossOrder').val()), $('#buyCrossAmount').val());
+    bundle.EtherDelta.trade('buy', JSON.parse($('#buyCrossOrder').val()), $('#buyCrossAmount').val());
   });
 });
 $(() => {
   $('body').on('click', '#sellCrossSubmit', (e) => {
     e.preventDefault();
     $('#sellCrossModal').modal('hide');
-    bundle.EtheRoox.trade(
+    bundle.EtherDelta.trade(
       'sell',
       JSON.parse($('#sellCrossOrder').val()),
       $('#sellCrossAmount').val());
@@ -109,7 +121,7 @@ $(() => {
   $('body').on('click', '#otherTokenSubmit', (e) => {
     e.preventDefault();
     $('#otherTokenModal').modal('hide');
-    bundle.EtheRoox.selectToken(
+    bundle.EtherDelta.selectToken(
       $('#otherTokenAddr').val(),
       $('#otherTokenName').val(),
       $('#otherTokenDecimals').val());
@@ -119,19 +131,30 @@ $(() => {
   $('body').on('click', '#otherBaseSubmit', (e) => {
     e.preventDefault();
     $('#otherBaseModal').modal('hide');
-    bundle.EtheRoox.selectBase(
+    bundle.EtherDelta.selectBase(
       $('#otherBaseAddr').val(),
       $('#otherBaseName').val(),
       $('#otherBaseDecimals').val());
   });
 });
+$('#gasPriceModal').on('show.bs.modal', () => {
+  $('#gasPrice').val(bundle.EtherDelta.config.ethGasPrice / 1000000000);
+});
+$(() => {
+  $('body').on('click', '#gasPriceSubmit', (e) => {
+    e.preventDefault();
+    $('#gasPriceModal').modal('hide');
+    bundle.EtherDelta.setGasPrice(
+      $('#gasPrice').val());
+  });
+});
 function depositClick(addr) { // eslint-disable-line no-unused-vars
-  bundle.EtheRoox.deposit(addr, $(`#depositAmount${addr}`).val());
+  bundle.EtherDelta.deposit(addr, $(`#depositAmount${addr}`).val());
 }
 function withdrawClick(addr) { // eslint-disable-line no-unused-vars
-  bundle.EtheRoox.withdraw(addr, $(`#withdrawAmount${addr}`).val());
+  bundle.EtherDelta.withdraw(addr, $(`#withdrawAmount${addr}`).val());
 }
 function transferClick(addr) { // eslint-disable-line no-unused-vars
-  bundle.EtheRoox.transfer(addr, $(`#transferAmount${addr}`).val(), $(`#transferTo${addr}`).val());
+  bundle.EtherDelta.transfer(addr, $(`#transferAmount${addr}`).val(), $(`#transferTo${addr}`).val());
 }
 $(() => {});

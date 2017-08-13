@@ -1,28 +1,31 @@
 <div class="row-box height5 scroll">
   <table class="table table-condensed table-borderless">
+    <tr class="table-header">
+      <th class="trn">pair</th>
+      <th class="trn">daily</th>
+      <th><span class="trn">bid</span></th>
+      <th><span class="trn">offer</span></th>
+    </tr>
     <% pairVolumes.forEach(function(pairVolume){ %>
       <tr>
-        <td><a href="javascript:;" onclick="bundle.EtheRoox.selectTokenAndBase('<%= pairVolume.token.addr %>','<%= pairVolume.base.addr %>');"><%= pairVolume.token.name+'/'+pairVolume.base.name %></a></td>
-        <td class="align-right"><%= pairVolume.bid ? pairVolume.bid.toNumber().toFixed(5) : '' %></td>
-        <td class="align-right padding-right"><%= pairVolume.ask ? pairVolume.ask.toNumber().toFixed(5) : '' %></td>
-        <td class="align-right"><%= bundle.utility.weiToEth(pairVolume.volumes[1], bundle.EtheRoox.getDivisor(pairVolume.token)) %></td>
-        <td class="align-right"><%= bundle.utility.weiToEth(pairVolume.volumes[0], bundle.EtheRoox.getDivisor(pairVolume.token)) %></td>
+        <td><a href="javascript:;" onclick="bundle.EtherDelta.selectTokenAndBase('<%= pairVolume.token.addr %>','<%= pairVolume.base.addr %>');"><%= pairVolume.token.name+'/'+pairVolume.base.name %></a></td>
+        <td><%= Math.round(pairVolume.volume) %></td>
+        <td><%= pairVolume.bid ? pairVolume.bid.toNumber().toFixed(9) : '' %></td>
+        <td><%= pairVolume.ask ? pairVolume.ask.toNumber().toFixed(9) : '' %></td>
       </tr>
     <% }) %>
     <tr class="mid-header">
       <th class="trn">token</th>
-      <th class="trn align-right">daily</th>
-      <th class="trn align-right">weekly</th>
-      <th class="align-right"></th>
-      <th class="align-right padding-right"></th>
+      <th class="trn">daily</th>
+      <th></th>
+      <th></th>
     </tr>
     <% tokenVolumes.forEach(function(tokenVolume){ %>
       <tr>
-        <td><a href="javascript:;" onclick="bundle.EtheRoox.displayTokenGuide('<%= tokenVolume.token.name %>')"><%= tokenVolume.token.name %></a></td>
-        <td class="align-right"><%= bundle.utility.weiToEth(tokenVolume.volumes[1], bundle.EtheRoox.getDivisor(tokenVolume.token)) %></td>
-        <td class="align-right"><%= bundle.utility.weiToEth(tokenVolume.volumes[0], bundle.EtheRoox.getDivisor(tokenVolume.token)) %></td>
-        <td class="align-right"></td>
-        <td class="align-right padding-right"></td>
+        <td><a href="javascript:;" onclick="bundle.EtherDelta.displayTokenGuide('<%= tokenVolume.token.name %>')"><%= tokenVolume.token.name %></a></td>
+        <td><%= Math.round(tokenVolume.volume) %></td>
+        <td></td>
+        <td></td>
       </tr>
     <% }) %>
   </table>

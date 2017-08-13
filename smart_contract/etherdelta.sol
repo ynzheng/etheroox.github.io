@@ -25,11 +25,11 @@ contract SafeMath {
 
 contract Token {
   /// @return total amount of tokens
-  function totalSupply() constant returns (uint256) {}
+  function totalSupply() constant returns (uint256 supply) {}
 
   /// @param _owner The address from which the balance will be retrieved
   /// @return The balance
-  function balanceOf(address _owner) constant returns (uint256) {}
+  function balanceOf(address _owner) constant returns (uint256 balance) {}
 
   /// @notice send `_value` token to `_to` from `msg.sender`
   /// @param _to The address of the recipient
@@ -148,7 +148,7 @@ contract AccountLevelsTest is AccountLevels {
   }
 }
 
-contract EtheRoox is SafeMath {
+contract EtherDelta is SafeMath {
   address public admin; //the admin address
   address public feeAccount; //the account that will receive fees
   address public accountLevelsAddr; //the address of the AccountLevels contract
@@ -165,7 +165,7 @@ contract EtheRoox is SafeMath {
   event Deposit(address token, address user, uint amount, uint balance);
   event Withdraw(address token, address user, uint amount, uint balance);
 
-  function EtheRoox(address admin_, address feeAccount_, address accountLevelsAddr_, uint feeMake_, uint feeTake_, uint feeRebate_) {
+  function EtherDelta(address admin_, address feeAccount_, address accountLevelsAddr_, uint feeMake_, uint feeTake_, uint feeRebate_) {
     admin = admin_;
     feeAccount = feeAccount_;
     accountLevelsAddr = accountLevelsAddr_;
@@ -310,4 +310,3 @@ contract EtheRoox is SafeMath {
     Cancel(tokenGet, amountGet, tokenGive, amountGive, expires, nonce, msg.sender, v, r, s);
   }
 }
-
