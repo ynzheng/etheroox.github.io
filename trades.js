@@ -9,8 +9,8 @@ const sha3 = require('web3/lib/utils/sha3.js');
 const SolidityEvent = require('web3/lib/web3/event.js');
 const stats = require('stats-lite');
 
-const addressEtherDelta = '0x8d12a197cb00d4747a1fe03395095ce2a5cc6819';
-const addressToken = '0xAf30D2a7E90d7DC361c8C4585e9BB7D2F6f15bc7';
+const addressEtheRoox = '0xbca13cbebff557143e8ad089192380e9c9a58c70';
+const addressToken = '0xbca13cbebff557143e8ad089192380e9c9a58c70';
 
 const web3 = new Web3();
 const provider = 'http://localhost:8545';
@@ -18,7 +18,7 @@ web3.setProvider(new Web3.providers.HttpProvider(provider));
 
 function TradeUtil() {
   const self = this;
-  self.contractEtherDelta = null;
+  self.contractEtheRoox = null;
   self.contractToken = null;
   self.blockNumber = 0;
   self.latestBlock = 0;
@@ -56,12 +56,12 @@ function TradeUtil() {
   };
 
   self.getContract = function getContract(callback) {
-    self.get(`https://api.etherscan.io/api?module=contract&action=getabi&address=${addressEtherDelta}`, (err, data) => {
+    self.get(`https://api.etherscan.io/api?module=contract&action=getabi&address=${addressEtheRoox}`, (err, data) => {
       if (err) throw new Error(err);
       const abi = JSON.parse(data.result);
-      self.contractEtherDelta = web3.eth.contract(abi);
-      self.contractEtherDelta = self.contractEtherDelta.at(addressEtherDelta);
-      callback(null, self.contractEtherDelta);
+      self.contractEtheRoox = web3.eth.contract(abi);
+      self.contractEtheRoox = self.contractEtheRoox.at(addressEtheRoox);
+      callback(null, self.contractEtheRoox);
     });
   };
 
@@ -91,7 +91,7 @@ function TradeUtil() {
 
   self.getLog = function getLog(fromBlock, toBlock, callback) {
     function decodeEvent(item) {
-      const eventAbis = self.contractEtherDelta.abi.filter(eventAbi => (
+      const eventAbis = self.contractEtheRoox.abi.filter(eventAbi => (
           eventAbi.type === 'event' &&
           item.topics[0] ===
             `0x${
@@ -105,14 +105,14 @@ function TradeUtil() {
         ));
       if (eventAbis.length > 0) {
         const eventAbi = eventAbis[0];
-        const event = new SolidityEvent(web3, eventAbi, addressEtherDelta);
+        const event = new SolidityEvent(web3, eventAbi, addressEtheRoox);
         const result = event.decode(item);
         return result;
       }
       return null;
     }
     const url =
-      `https://api.etherscan.io/api?module=logs&action=getLogs&address=${addressEtherDelta}&fromBlock=${fromBlock}&toBlock=${toBlock}`;
+      `https://api.etherscan.io/api?module=logs&action=getLogs&address=${addressEtheRoox}&fromBlock=${fromBlock}&toBlock=${toBlock}`;
     self.get(url, (err, data) => {
       if (!err) {
         try {
@@ -490,3 +490,4 @@ function TradeUtil() {
 const tradeUtil = new TradeUtil();
 
 module.exports = { TradeUtil: tradeUtil };
+
