@@ -27,7 +27,7 @@ require('datejs');
 const async = typeof window === 'undefined' ? require('async') : require('async/dist/async.min.js');
 const translations = require('./translations.js');
 
-function EtherDelta() {
+function EtheRoox() {
   this.q = async.queue((task, callback) => {
     task(callback);
   }, 1);
@@ -42,7 +42,7 @@ function EtherDelta() {
   this.nonce = undefined;
   this.price = undefined;
   this.priceUpdated = Date.now();
-  this.contractEtherDelta = undefined;
+  this.contractEtheRoox = undefined;
   this.contractToken = undefined;
   this.eventsCache = {};
   this.publishingOrders = false;
@@ -63,10 +63,10 @@ function EtherDelta() {
   this.daysOfData = 7;
   this.minGas = 0.005;
   window.addEventListener('load', () => {
-    this.startEtherDelta();
+    this.startEtheRoox();
   });
 }
-EtherDelta.prototype.ejs = function ejs(url, element, data) {
+EtheRoox.prototype.ejs = function ejs(url, element, data) {
   if ($(`#${element}`).length) {
     new EJS({ url }).update(element, data);
     this.translator.lang(this.language);
@@ -94,7 +94,7 @@ if (!alertify.dialogInfo) {
     };
   }, true, 'alert');
 }
-EtherDelta.prototype.dialogInfo = function dialogInfo(message) {
+EtheRoox.prototype.dialogInfo = function dialogInfo(message) {
   console.log(message);
   alertify.dialogInfo(message);
   ga('send', {
@@ -103,7 +103,7 @@ EtherDelta.prototype.dialogInfo = function dialogInfo(message) {
     eventAction: 'Info',
   });
 };
-EtherDelta.prototype.dialogError = function dialogError(message) {
+EtheRoox.prototype.dialogError = function dialogError(message) {
   console.log(message);
   alertify.dialogError(message);
   ga('send', {
@@ -112,7 +112,7 @@ EtherDelta.prototype.dialogError = function dialogError(message) {
     eventAction: 'Error',
   });
 };
-EtherDelta.prototype.alertSuccess = function alertSuccess(message) {
+EtheRoox.prototype.alertSuccess = function alertSuccess(message) {
   console.log(message);
   alertify.success(message);
   ga('send', {
@@ -121,13 +121,13 @@ EtherDelta.prototype.alertSuccess = function alertSuccess(message) {
     eventAction: 'Success',
   });
 };
-EtherDelta.prototype.txError = function txError(err) {
+EtheRoox.prototype.txError = function txError(err) {
   console.log('Error', err);
   utility.getBalance(this.web3, this.addrs[this.selectedAccount], (errBalance, resultBalance) => {
     const balance = utility.weiToEth(resultBalance);
     if (this.connection.connection === 'RPC' && this.addrKinds[this.selectedAccount] !== 'MetaMask') {
       if (this.pks[this.selectedAccount]) {
-        this.dialogError('You are using an EtherDelta account that has a private key attached, but you\'re connected to MetaMask. You should disable MetaMask from Chrome\'s Window -> Extensions menu (don\'t worry, this won\'t lose your MetaMask data), then refresh EtherDelta.');
+        this.dialogError('You are using an EtheRoox account that has a private key attached, but you\'re connected to MetaMask. You should disable MetaMask from Chrome\'s Window -> Extensions menu (don\'t worry, this won\'t lose your MetaMask data), then refresh EtheRoox.');
         ga('send', {
           hitType: 'event',
           eventCategory: 'Error',
@@ -142,14 +142,14 @@ EtherDelta.prototype.txError = function txError(err) {
         });
       }
     } else if (this.connection.connection === 'Proxy' && !this.pks[this.selectedAccount]) {
-      this.dialogError('You are using an EtherDelta account that doesn\'t have a private key attached. Perhaps you created the account using MetaMask, in which case you should make sure MetaMask is enabled and logged in to this account, then refresh EtherDelta. Or, if you have the private key, you can choose "Import account" from the accounts dropdown (upper right) to re-import the account with its private key.');
+      this.dialogError('You are using an EtheRoox account that doesn\'t have a private key attached. Perhaps you created the account using MetaMask, in which case you should make sure MetaMask is enabled and logged in to this account, then refresh EtheRoox. Or, if you have the private key, you can choose "Import account" from the accounts dropdown (upper right) to re-import the account with its private key.');
       ga('send', {
         hitType: 'event',
         eventCategory: 'Error',
         eventAction: 'Ethereum - transaction error',
       });
     } else if (this.connection.connection === 'Proxy' && !utility.verifyPrivateKey(this.addrs[this.selectedAccount], this.pks[this.selectedAccount])) {
-      this.dialogError('You are using an EtherDelta account that has an invalid private key.');
+      this.dialogError('You are using an EtheRoox account that has an invalid private key.');
       ga('send', {
         hitType: 'event',
         eventCategory: 'Error',
@@ -157,7 +157,7 @@ EtherDelta.prototype.txError = function txError(err) {
       });
     } else if (this.connection.connection === 'Proxy' && balance < 2 * this.minGas) {
       this.dialogError(
-        `Your wallet's ETH balance (${balance} ETH) is not enough to cover the gas cost (Ethereum network fee). EtherDelta sends ${this.minGas} ETH with each transaction. This is an overestimate and the excess will get refunded to you. It's a good idea to send more than ${this.minGas} so you can pay for not only this transaction, but also future transactions you do on EtherDelta. The gas has to come directly from your Wallet (EtherDelta has no physical way of paying gas from your deposited ETH).`);
+        `Your wallet's ETH balance (${balance} ETH) is not enough to cover the gas cost (Ethereum network fee). EtheRoox sends ${this.minGas} ETH with each transaction. This is an overestimate and the excess will get refunded to you. It's a good idea to send more than ${this.minGas} so you can pay for not only this transaction, but also future transactions you do on EtheRoox. The gas has to come directly from your Wallet (EtheRoox has no physical way of paying gas from your deposited ETH).`);
       ga('send', {
         hitType: 'event',
         eventCategory: 'Error',
@@ -173,7 +173,7 @@ EtherDelta.prototype.txError = function txError(err) {
     }
   });
 };
-EtherDelta.prototype.alertTxResult = function alertTxResult(err, txsIn) {
+EtheRoox.prototype.alertTxResult = function alertTxResult(err, txsIn) {
   const txs = Array.isArray(txsIn) ? txsIn : [txsIn];
   if (err) {
     this.txError(err);
@@ -207,11 +207,11 @@ EtherDelta.prototype.alertTxResult = function alertTxResult(err, txsIn) {
     });
   }
 };
-EtherDelta.prototype.enableTooltipsAndPopovers = function enableTooltipsAndPopovers() {
+EtheRoox.prototype.enableTooltipsAndPopovers = function enableTooltipsAndPopovers() {
   $('[data-toggle="popover"]').popover({ trigger: 'hover' });
   $('[data-toggle="tooltip"]').tooltip();
 };
-EtherDelta.prototype.createAccount = function createAccount() {
+EtheRoox.prototype.createAccount = function createAccount() {
   const newAccount = utility.createAccount();
   const addr = newAccount.address;
   const pk = newAccount.privateKey;
@@ -224,7 +224,7 @@ EtherDelta.prototype.createAccount = function createAccount() {
     eventAction: 'Create Account',
   });
 };
-EtherDelta.prototype.deleteAccount = function deleteAccount() {
+EtheRoox.prototype.deleteAccount = function deleteAccount() {
   if (this.pks[this.selectedAccount]) {
     const addr = this.addrs[this.selectedAccount];
     const pk = this.pks[this.selectedAccount];
@@ -247,7 +247,7 @@ EtherDelta.prototype.deleteAccount = function deleteAccount() {
     eventAction: 'Delete Account',
   });
 };
-EtherDelta.prototype.selectAccount = function selectAccount(i) {
+EtheRoox.prototype.selectAccount = function selectAccount(i) {
   this.selectedAccount = i;
   this.nonce = undefined;
   this.refresh(() => {}, true, true);
@@ -257,7 +257,7 @@ EtherDelta.prototype.selectAccount = function selectAccount(i) {
     eventAction: 'Select Account',
   });
 };
-EtherDelta.prototype.addAccount = function addAccount(newAddr, newPk) {
+EtheRoox.prototype.addAccount = function addAccount(newAddr, newPk) {
   let addr = newAddr.toLowerCase();
   let pk = newPk;
   if (addr.slice(0, 2) !== '0x') addr = `0x${addr}`;
@@ -296,7 +296,7 @@ EtherDelta.prototype.addAccount = function addAccount(newAddr, newPk) {
     });
   }
 };
-EtherDelta.prototype.showPrivateKey = function showPrivateKey() {
+EtheRoox.prototype.showPrivateKey = function showPrivateKey() {
   const addr = this.addrs[this.selectedAccount];
   const pk = this.pks[this.selectedAccount];
   if (!pk) {
@@ -316,16 +316,16 @@ EtherDelta.prototype.showPrivateKey = function showPrivateKey() {
     });
   }
 };
-EtherDelta.prototype.addressLink = function addressLink(address) {
+EtheRoox.prototype.addressLink = function addressLink(address) {
   return `https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/address/${address}`;
 };
-EtherDelta.prototype.contractAddr = function contractAddr(addr) {
-  this.config.contractEtherDeltaAddr = addr;
+EtheRoox.prototype.contractAddr = function contractAddr(addr) {
+  this.config.contractEtheRooxAddr = addr;
   this.displayConnectionDescription(() => {});
   this.loading(() => {});
   this.refresh(() => {}, true, true);
 };
-EtherDelta.prototype.displayAccounts = function displayAccounts(callback) {
+EtheRoox.prototype.displayAccounts = function displayAccounts(callback) {
   if (this.addrs.length <= 0 || this.addrs.length !== this.pks.length) {
     this.addrs = [this.config.ethAddr];
     this.pks = [this.config.ethAddrPrivateKey];
@@ -352,7 +352,7 @@ EtherDelta.prototype.displayAccounts = function displayAccounts(callback) {
       callback();
     });
 };
-EtherDelta.prototype.displayLanguages = function displayLanguages(callback) {
+EtheRoox.prototype.displayLanguages = function displayLanguages(callback) {
   const languages = Object.keys(translations.trades);
   this.ejs(`${this.config.homeURL}/templates/languages.ejs`, 'languages', {
     languages,
@@ -360,7 +360,7 @@ EtherDelta.prototype.displayLanguages = function displayLanguages(callback) {
   });
   callback();
 };
-EtherDelta.prototype.selectLanguage = function selectLanguage(newLanguage) {
+EtheRoox.prototype.selectLanguage = function selectLanguage(newLanguage) {
   this.language = newLanguage;
   window.title = translations.title[this.language];
   this.translator.lang(this.language);
@@ -373,11 +373,11 @@ EtherDelta.prototype.selectLanguage = function selectLanguage(newLanguage) {
     eventLabel: newLanguage,
   });
 };
-EtherDelta.prototype.loadEvents = function loadEvents(callback) {
+EtheRoox.prototype.loadEvents = function loadEvents(callback) {
   let lastBlock = 0;
   Object.keys(this.eventsCache).forEach((id) => {
     const event = this.eventsCache[id];
-    if (event.blockNumber > lastBlock && event.address === this.config.contractEtherDeltaAddr) {
+    if (event.blockNumber > lastBlock && event.address === this.config.contractEtheRooxAddr) {
       lastBlock = event.blockNumber;
     }
   });
@@ -425,7 +425,7 @@ EtherDelta.prototype.loadEvents = function loadEvents(callback) {
     }
   });
 };
-EtherDelta.prototype.displayMyTransactions =
+EtheRoox.prototype.displayMyTransactions =
 function displayMyTransactions(ordersIn, blockNumber, callback) {
   // only look at orders for the selected token and base
   let orders = ordersIn.filter(
@@ -440,7 +440,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
   orders = orders.filter(
     order => this.addrs[this.selectedAccount].toLowerCase() === order.order.user.toLowerCase());
   // filter only orders that match the smart contract address
-  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
+  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtheRooxAddr);
   // final order filtering and sorting
   const buyOrders = orders.filter(x => x.amount > 0);
   const sellOrders = orders.filter(x => x.amount < 0);
@@ -453,7 +453,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
     try {
       if (
         event.event === 'Trade' &&
-        event.address === this.config.contractEtherDeltaAddr &&
+        event.address === this.config.contractEtheRooxAddr &&
         (event.args.get.toLowerCase() === this.addrs[this.selectedAccount].toLowerCase() ||
           event.args.give.toLowerCase() === this.addrs[this.selectedAccount].toLowerCase())
       ) {
@@ -501,7 +501,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
         }
       } else if (
         event.event === 'Deposit' &&
-        event.address === this.config.contractEtherDeltaAddr &&
+        event.address === this.config.contractEtheRooxAddr &&
         (
           event.args.token === this.selectedBase.addr ||
           event.args.token === this.selectedToken.addr
@@ -523,7 +523,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
         });
       } else if (
         event.event === 'Withdraw' &&
-        event.address === this.config.contractEtherDeltaAddr &&
+        event.address === this.config.contractEtheRooxAddr &&
         (
           event.args.token === this.selectedBase.addr ||
           event.args.token === this.selectedToken.addr
@@ -585,7 +585,7 @@ function displayMyTransactions(ordersIn, blockNumber, callback) {
       callback();
     });
 };
-EtherDelta.prototype.isInCross = function isInCross(priceIn, kind) {
+EtheRoox.prototype.isInCross = function isInCross(priceIn, kind) {
   const price = new BigNumber(priceIn);
   if (price === undefined || price <= 0) return undefined;
   const orders = this.ordersResultByPair.orders;
@@ -594,7 +594,7 @@ EtherDelta.prototype.isInCross = function isInCross(priceIn, kind) {
     Number(order.ethAvailableVolume).toFixed(3) >= this.minOrderSize &&
     Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize)
   .filter(
-    order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
+    order => order.order.contractAddr === this.config.contractEtheRooxAddr);
   // final order filtering and sorting
   const buyOrders = ordersFiltered.filter(x => x.amount > 0);
   const sellOrders = ordersFiltered.filter(x => x.amount < 0);
@@ -609,7 +609,7 @@ EtherDelta.prototype.isInCross = function isInCross(priceIn, kind) {
   }
   return undefined;
 };
-EtherDelta.prototype.displayVolumes = function displayVolumes(
+EtheRoox.prototype.displayVolumes = function displayVolumes(
   orders, returnTicker, blockNumber, callback) {
   let tokenVolumes = {};
   let pairVolumes = {};
@@ -687,7 +687,7 @@ EtherDelta.prototype.displayVolumes = function displayVolumes(
       Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize);
     // filter only orders that match the smart contract address
     ordersFiltered = ordersFiltered.filter(
-      order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
+      order => order.order.contractAddr === this.config.contractEtheRooxAddr);
     // final order filtering and sorting
     const buyOrders = ordersFiltered.filter(x => x.amount > 0);
     const sellOrders = ordersFiltered.filter(x => x.amount < 0);
@@ -708,12 +708,12 @@ EtherDelta.prototype.displayVolumes = function displayVolumes(
   });
   callback();
 };
-EtherDelta.prototype.displayTradesAndChart = function displayTradesAndChart(callback) {
+EtheRoox.prototype.displayTradesAndChart = function displayTradesAndChart(callback) {
   // get the trade list
   const events = Object.values(this.eventsCache);
   const trades = [];
   events.forEach((event) => {
-    if (event.event === 'Trade' && event.address === this.config.contractEtherDeltaAddr) {
+    if (event.event === 'Trade' && event.address === this.config.contractEtheRooxAddr) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         let trade;
@@ -831,7 +831,7 @@ EtherDelta.prototype.displayTradesAndChart = function displayTradesAndChart(call
 
   callback();
 };
-EtherDelta.prototype.candlestickChart =
+EtheRoox.prototype.candlestickChart =
 function candlestickChart(elem, title, xtitle, ytitle, data, minValue, maxValue) {
   $(`#${elem}`).html('');
   google.charts.setOnLoadCallback(() => {
@@ -876,7 +876,7 @@ function candlestickChart(elem, title, xtitle, ytitle, data, minValue, maxValue)
     }
   });
 };
-EtherDelta.prototype.depthChart =
+EtheRoox.prototype.depthChart =
 function depthChart(elem, title, xtitle, ytitle, data, minX, maxX) {
   $(`#${elem}`).html('');
   google.charts.setOnLoadCallback(() => {
@@ -919,7 +919,7 @@ function depthChart(elem, title, xtitle, ytitle, data, minX, maxX) {
     }
   });
 };
-EtherDelta.prototype.lineChart =
+EtheRoox.prototype.lineChart =
 function lineChart(elem, title, xtype, ytype, xtitle, ytitle, data) {
   $(`#${elem}`).html('');
   google.charts.setOnLoadCallback(() => {
@@ -947,7 +947,7 @@ function lineChart(elem, title, xtype, ytype, xtitle, ytitle, data) {
     }
   });
 };
-EtherDelta.prototype.getOrdersByPair = function getOrdersByPair(tokenA, tokenB, callback) {
+EtheRoox.prototype.getOrdersByPair = function getOrdersByPair(tokenA, tokenB, callback) {
   utility.getURL(`${this.config.apiServer}/orders/${this.apiServerNonce}/${tokenA}/${tokenB}`, (err, result) => {
     if (!err && result !== 'error') {
       try {
@@ -990,7 +990,7 @@ EtherDelta.prototype.getOrdersByPair = function getOrdersByPair(tokenA, tokenB, 
     }
   });
 };
-EtherDelta.prototype.getReturnTicker = function getTopOrders(callback) {
+EtheRoox.prototype.getReturnTicker = function getTopOrders(callback) {
   utility.getURL(`${this.config.apiServer}/returnTicker`, (err, result) => {
     if (!err && result !== 'error') {
       try {
@@ -1004,7 +1004,7 @@ EtherDelta.prototype.getReturnTicker = function getTopOrders(callback) {
     }
   });
 };
-EtherDelta.prototype.getTopOrders = function getTopOrders(callback) {
+EtheRoox.prototype.getTopOrders = function getTopOrders(callback) {
   utility.getURL(`${this.config.apiServer}/topOrders/${this.apiServerNonce}`, (err, result) => {
     if (!err) {
       try {
@@ -1045,7 +1045,7 @@ EtherDelta.prototype.getTopOrders = function getTopOrders(callback) {
     }
   });
 };
-EtherDelta.prototype.displayOrderbook = function displayOrderbook(ordersIn, blockNumber, callback) {
+EtheRoox.prototype.displayOrderbook = function displayOrderbook(ordersIn, blockNumber, callback) {
   // only look at orders for the selected token and base
   let orders = ordersIn.filter(
     x =>
@@ -1060,7 +1060,7 @@ EtherDelta.prototype.displayOrderbook = function displayOrderbook(ordersIn, bloc
     Number(order.ethAvailableVolume).toFixed(3) >= this.minOrderSize &&
     Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize);
   // filter only orders that match the smart contract address
-  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtherDeltaAddr);
+  orders = orders.filter(order => order.order.contractAddr === this.config.contractEtheRooxAddr);
   // final order filtering and sorting
   const buyOrders = orders.filter(x => x.amount > 0);
   const sellOrders = orders.filter(x => x.amount < 0);
@@ -1120,7 +1120,7 @@ EtherDelta.prototype.displayOrderbook = function displayOrderbook(ordersIn, bloc
   this.depthChart('chartDepth', '', '', '', depthDataFiltered, median * 0.25, median * 1.75);
   callback();
 };
-EtherDelta.prototype.displayTokensAndBases = function displayTokensAndBases(callback) {
+EtheRoox.prototype.displayTokensAndBases = function displayTokensAndBases(callback) {
   const tokens = this.config.tokens.map(x => x);
   tokens.sort((a, b) => (a.name > b.name ? 1 : -1));
   this.ejs(`${this.config.homeURL}/templates/tokensDropdown.ejs`, 'tokensDropdown', {
@@ -1133,7 +1133,7 @@ EtherDelta.prototype.displayTokensAndBases = function displayTokensAndBases(call
   });
   callback();
 };
-EtherDelta.prototype.displayAllBalances = function displayAllBalances(callback) {
+EtheRoox.prototype.displayAllBalances = function displayAllBalances(callback) {
   const zeroAddr = '0x0000000000000000000000000000000000000000';
   // add selected token and base to config.tokens
   const tempTokens = [this.selectedToken, this.selectedBase];
@@ -1143,8 +1143,8 @@ EtherDelta.prototype.displayAllBalances = function displayAllBalances(callback) 
       if (token.addr === zeroAddr) {
         utility.call(
           this.web3,
-          this.contractEtherDelta,
-          this.config.contractEtherDeltaAddr,
+          this.contractEtheRoox,
+          this.config.contractEtheRooxAddr,
           'balanceOf',
           [token.addr, this.addrs[this.selectedAccount]],
           (err, result) => {
@@ -1163,8 +1163,8 @@ EtherDelta.prototype.displayAllBalances = function displayAllBalances(callback) 
       } else {
         utility.call(
           this.web3,
-          this.contractEtherDelta,
-          this.config.contractEtherDeltaAddr,
+          this.contractEtheRoox,
+          this.config.contractEtheRooxAddr,
           'balanceOf',
           [token.addr, this.addrs[this.selectedAccount]],
           (err, result) => {
@@ -1209,7 +1209,7 @@ EtherDelta.prototype.displayAllBalances = function displayAllBalances(callback) 
       callback();
     });
 };
-EtherDelta.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
+EtheRoox.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
   let amount = new BigNumber(Number(utility.ethToWei(inputAmount, this.getDivisor(addr))));
   const token = this.getToken(addr);
   if (amount.lte(0)) {
@@ -1232,8 +1232,8 @@ EtherDelta.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
       eventLabel: token.name,
       eventValue: inputAmount,
     });
-  } else if (toAddr.toLowerCase() === this.config.contractEtherDeltaAddr.toLowerCase()) {
-    this.dialogError('If you send funds directly to the EtherDelta smart contract, they will be lost. You need to use the Deposit tab to deposit.');
+  } else if (toAddr.toLowerCase() === this.config.contractEtheRooxAddr.toLowerCase()) {
+    this.dialogError('If you send funds directly to the EtheRoox smart contract, they will be lost. You need to use the Deposit tab to deposit.');
     ga('send', {
       hitType: 'event',
       eventCategory: 'Error',
@@ -1323,7 +1323,7 @@ EtherDelta.prototype.transfer = function transfer(addr, inputAmount, toAddr) {
       });
   }
 };
-EtherDelta.prototype.deposit = function deposit(addr, inputAmount) {
+EtheRoox.prototype.deposit = function deposit(addr, inputAmount) {
   let amount = new BigNumber(Number(utility.ethToWei(inputAmount, this.getDivisor(addr))));
   const token = this.getToken(addr);
   if (amount.lte(0)) {
@@ -1343,8 +1343,8 @@ EtherDelta.prototype.deposit = function deposit(addr, inputAmount) {
       if (amount.lte(result)) {
         utility.send(
           this.web3,
-          this.contractEtherDelta,
-          this.config.contractEtherDeltaAddr,
+          this.contractEtheRoox,
+          this.config.contractEtheRooxAddr,
           'deposit',
           [{ gas: this.config.gasDeposit, value: amount.toNumber() }],
           this.addrs[this.selectedAccount],
@@ -1379,7 +1379,7 @@ EtherDelta.prototype.deposit = function deposit(addr, inputAmount) {
       this.contractToken,
       token.addr,
       'allowance',
-      [this.addrs[this.selectedAccount], this.config.contractEtherDeltaAddr],
+      [this.addrs[this.selectedAccount], this.config.contractEtheRooxAddr],
       (errAllowance, resultAllowance) => {
         if (resultAllowance.gt(0) && amount.gt(resultAllowance)) amount = resultAllowance;
         utility.call(
@@ -1402,7 +1402,7 @@ EtherDelta.prototype.deposit = function deposit(addr, inputAmount) {
                         this.contractToken,
                         addr,
                         'approve',
-                        [this.config.contractEtherDeltaAddr, amount,
+                        [this.config.contractEtheRooxAddr, amount,
                           { gas: this.config.gasApprove, value: 0 }],
                         this.addrs[this.selectedAccount],
                         this.pks[this.selectedAccount],
@@ -1419,8 +1419,8 @@ EtherDelta.prototype.deposit = function deposit(addr, inputAmount) {
                   (callbackSeries) => {
                     utility.send(
                       this.web3,
-                      this.contractEtherDelta,
-                      this.config.contractEtherDeltaAddr,
+                      this.contractEtheRoox,
+                      this.config.contractEtheRooxAddr,
                       'depositToken',
                       [addr, amount, { gas: this.config.gasDeposit, value: 0 }],
                       this.addrs[this.selectedAccount],
@@ -1461,7 +1461,7 @@ EtherDelta.prototype.deposit = function deposit(addr, inputAmount) {
       });
   }
 };
-EtherDelta.prototype.withdraw = function withdraw(addr, amountIn) {
+EtheRoox.prototype.withdraw = function withdraw(addr, amountIn) {
   let amount = new BigNumber(Number(utility.ethToWei(amountIn, this.getDivisor(addr))));
   const token = this.getToken(addr);
   if (amount.lte(0)) {
@@ -1477,8 +1477,8 @@ EtherDelta.prototype.withdraw = function withdraw(addr, amountIn) {
   }
   utility.call(
     this.web3,
-    this.contractEtherDelta,
-    this.config.contractEtherDeltaAddr,
+    this.contractEtheRoox,
+    this.config.contractEtheRooxAddr,
     'balanceOf',
     [addr, this.addrs[this.selectedAccount]],
     (err, result) => {
@@ -1500,8 +1500,8 @@ EtherDelta.prototype.withdraw = function withdraw(addr, amountIn) {
       } else if (addr.slice(0, 39) === '0x0000000000000000000000000000000000000') {
         utility.send(
           this.web3,
-          this.contractEtherDelta,
-          this.config.contractEtherDeltaAddr,
+          this.contractEtheRoox,
+          this.config.contractEtheRooxAddr,
           'withdraw',
           [amount, { gas: this.config.gasWithdraw, value: 0 }],
           this.addrs[this.selectedAccount],
@@ -1522,8 +1522,8 @@ EtherDelta.prototype.withdraw = function withdraw(addr, amountIn) {
       } else {
         utility.send(
           this.web3,
-          this.contractEtherDelta,
-          this.config.contractEtherDeltaAddr,
+          this.contractEtheRoox,
+          this.config.contractEtheRooxAddr,
           'withdrawToken',
           [addr, amount, { gas: this.config.gasWithdraw, value: 0 }],
           this.addrs[this.selectedAccount],
@@ -1544,7 +1544,7 @@ EtherDelta.prototype.withdraw = function withdraw(addr, amountIn) {
       }
     });
 };
-EtherDelta.prototype.order = function order(direction, amount, price, expires, refresh) {
+EtheRoox.prototype.order = function order(direction, amount, price, expires, refresh) {
   utility.blockNumber(this.web3, (err, blockNumber) => {
     const orderObj = {
       baseAddr: this.selectedBase.addr,
@@ -1573,7 +1573,7 @@ EtherDelta.prototype.order = function order(direction, amount, price, expires, r
     }
   });
 };
-EtherDelta.prototype.publishOrder = function publishOrder(
+EtheRoox.prototype.publishOrder = function publishOrder(
   baseAddr, tokenAddr, direction, amount, price, expires, orderNonce) {
   let tokenGet;
   let tokenGive;
@@ -1616,8 +1616,8 @@ EtherDelta.prototype.publishOrder = function publishOrder(
   }
   utility.call(
     this.web3,
-    this.contractEtherDelta,
-    this.config.contractEtherDeltaAddr,
+    this.contractEtheRoox,
+    this.config.contractEtheRooxAddr,
     'balanceOf',
     [tokenGive, this.addrs[this.selectedAccount]],
     (err, result) => {
@@ -1635,7 +1635,7 @@ EtherDelta.prototype.publishOrder = function publishOrder(
         // offchain order
         const condensed = utility.pack(
           [
-            this.config.contractEtherDeltaAddr,
+            this.config.contractEtheRooxAddr,
             tokenGet,
             amountGet,
             tokenGive,
@@ -1660,7 +1660,7 @@ EtherDelta.prototype.publishOrder = function publishOrder(
           } else {
             // Send order to offchain book:
             const order = {
-              contractAddr: this.config.contractEtherDeltaAddr,
+              contractAddr: this.config.contractEtheRooxAddr,
               tokenGet,
               amountGet,
               tokenGive,
@@ -1704,8 +1704,8 @@ EtherDelta.prototype.publishOrder = function publishOrder(
         // onchain order
         utility.send(
           this.web3,
-          this.contractEtherDelta,
-          this.config.contractEtherDeltaAddr,
+          this.contractEtheRoox,
+          this.config.contractEtheRooxAddr,
           'order',
           [
             tokenGet,
@@ -1733,13 +1733,13 @@ EtherDelta.prototype.publishOrder = function publishOrder(
       }
     });
 };
-EtherDelta.prototype.cancelOrder = function cancelOrder(orderIn) {
+EtheRoox.prototype.cancelOrder = function cancelOrder(orderIn) {
   const order = JSON.parse(decodeURIComponent(orderIn));
   if (order.user.toLowerCase() === this.addrs[this.selectedAccount].toLowerCase()) {
     utility.send(
       this.web3,
-      this.contractEtherDelta,
-      this.config.contractEtherDeltaAddr,
+      this.contractEtheRoox,
+      this.config.contractEtheRooxAddr,
       'cancelOrder',
       [
         order.tokenGet,
@@ -1770,7 +1770,7 @@ EtherDelta.prototype.cancelOrder = function cancelOrder(orderIn) {
       });
   }
 };
-EtherDelta.prototype.trade = function trade(kind, order, inputAmount) {
+EtheRoox.prototype.trade = function trade(kind, order, inputAmount) {
   if (this.addrs[this.selectedAccount].slice(0, 39) === '0x0000000000000000000000000000000000000') {
     this.dialogError(
       "You haven't selected an account. Make sure you have an account selected from the Accounts dropdown in the upper right.");
@@ -1797,16 +1797,16 @@ EtherDelta.prototype.trade = function trade(kind, order, inputAmount) {
   }
   utility.call(
     this.web3,
-    this.contractEtherDelta,
-    this.config.contractEtherDeltaAddr,
+    this.contractEtheRoox,
+    this.config.contractEtheRooxAddr,
     'balanceOf',
     [order.tokenGet, this.addrs[this.selectedAccount]],
     (err, result) => {
       const availableBalance = result;
       utility.call(
         this.web3,
-        this.contractEtherDelta,
-        this.config.contractEtherDeltaAddr,
+        this.contractEtheRoox,
+        this.config.contractEtheRooxAddr,
         'availableVolume',
         [
           order.tokenGet,
@@ -1837,8 +1837,8 @@ EtherDelta.prototype.trade = function trade(kind, order, inputAmount) {
           }
           utility.call(
             this.web3,
-            this.contractEtherDelta,
-            this.config.contractEtherDeltaAddr,
+            this.contractEtheRoox,
+            this.config.contractEtheRooxAddr,
             'testTrade',
             [
               order.tokenGet,
@@ -1858,8 +1858,8 @@ EtherDelta.prototype.trade = function trade(kind, order, inputAmount) {
               if (resultTestTrade && amount > 0) {
                 utility.send(
                   this.web3,
-                  this.contractEtherDelta,
-                  this.config.contractEtherDeltaAddr,
+                  this.contractEtheRoox,
+                  this.config.contractEtheRooxAddr,
                   'trade',
                   [
                     order.tokenGet,
@@ -1916,7 +1916,7 @@ EtherDelta.prototype.trade = function trade(kind, order, inputAmount) {
         });
     });
 };
-EtherDelta.prototype.addPending = function addPending(err, txsIn) {
+EtheRoox.prototype.addPending = function addPending(err, txsIn) {
   const txs = Array.isArray(txsIn) ? txsIn : [txsIn];
   txs.forEach((tx) => {
     if (!err && tx.txHash && tx.txHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
@@ -1926,7 +1926,7 @@ EtherDelta.prototype.addPending = function addPending(err, txsIn) {
   });
   this.refresh(() => {}, true, true);
 };
-EtherDelta.prototype.updateUrl = function updateUrl() {
+EtheRoox.prototype.updateUrl = function updateUrl() {
   let tokenName = this.selectedToken.name;
   let baseName = this.selectedBase.name;
   if (this.config.tokens.filter(x => x.name === tokenName).length === 0) {
@@ -1937,7 +1937,7 @@ EtherDelta.prototype.updateUrl = function updateUrl() {
   }
   window.location.hash = `#${tokenName}-${baseName}`;
 };
-EtherDelta.prototype.getDivisor = function getDivisor(tokenOrAddress) {
+EtheRoox.prototype.getDivisor = function getDivisor(tokenOrAddress) {
   let result = 1000000000000000000;
   const token = this.getToken(tokenOrAddress);
   if (token && token.decimals !== undefined) {
@@ -1945,7 +1945,7 @@ EtherDelta.prototype.getDivisor = function getDivisor(tokenOrAddress) {
   }
   return new BigNumber(result);
 };
-EtherDelta.prototype.getToken = function getToken(addrOrToken, name, decimals) {
+EtheRoox.prototype.getToken = function getToken(addrOrToken, name, decimals) {
   let result;
   const lowerAddrOrToken = typeof addrOrToken === 'string' ? addrOrToken.toLowerCase() : addrOrToken;
   const matchingTokens = this.config.tokens.filter(
@@ -1973,7 +1973,7 @@ EtherDelta.prototype.getToken = function getToken(addrOrToken, name, decimals) {
   }
   return result;
 };
-EtherDelta.prototype.loadToken = function loadToken(addr, callback) {
+EtheRoox.prototype.loadToken = function loadToken(addr, callback) {
   let token = this.getToken(addr);
   if (token) {
     callback(null, token);
@@ -1997,7 +1997,7 @@ EtherDelta.prototype.loadToken = function loadToken(addr, callback) {
     }
   }
 };
-EtherDelta.prototype.selectToken = function selectToken(addrOrToken, name, decimals) {
+EtheRoox.prototype.selectToken = function selectToken(addrOrToken, name, decimals) {
   const token = this.getToken(addrOrToken, name, decimals);
   if (token) {
     this.loading(() => {});
@@ -2010,7 +2010,7 @@ EtherDelta.prototype.selectToken = function selectToken(addrOrToken, name, decim
     });
   }
 };
-EtherDelta.prototype.selectBase = function selectBase(addrOrToken, name, decimals) {
+EtheRoox.prototype.selectBase = function selectBase(addrOrToken, name, decimals) {
   const base = this.getToken(addrOrToken, name, decimals);
   if (base) {
     this.loading(() => {});
@@ -2023,7 +2023,7 @@ EtherDelta.prototype.selectBase = function selectBase(addrOrToken, name, decimal
     });
   }
 };
-EtherDelta.prototype.selectTokenAndBase = function selectTokenAndBase(tokenAddr, baseAddr) {
+EtheRoox.prototype.selectTokenAndBase = function selectTokenAndBase(tokenAddr, baseAddr) {
   const token = this.getToken(tokenAddr);
   const base = this.getToken(baseAddr);
   if (token && base) {
@@ -2037,14 +2037,14 @@ EtherDelta.prototype.selectTokenAndBase = function selectTokenAndBase(tokenAddr,
     });
   }
 };
-EtherDelta.prototype.setGasPrice = function setGasPrice(gasPrice) {
+EtheRoox.prototype.setGasPrice = function setGasPrice(gasPrice) {
   if (gasPrice) {
     this.config.ethGasPrice = Number(gasPrice) * 1000000000;
     utility.createCookie('ethGasPrice', JSON.stringify(this.config.ethGasPrice), 999);
     this.minGas = (this.config.ethGasPrice * this.config.gasDeposit) / (10 ** 18);
   }
 };
-EtherDelta.prototype.displayBuySell = function displayBuySell(callback) {
+EtheRoox.prototype.displayBuySell = function displayBuySell(callback) {
   this.ejs(`${this.config.homeURL}/templates/buy.ejs`, 'buy', {
     selectedToken: this.selectedToken,
     selectedBase: this.selectedBase,
@@ -2056,17 +2056,17 @@ EtherDelta.prototype.displayBuySell = function displayBuySell(callback) {
   this.enableTooltipsAndPopovers();
   callback();
 };
-EtherDelta.prototype.displayTokenGuidesDropdown = function displayTokenGuidesDropdown() {
+EtheRoox.prototype.displayTokenGuidesDropdown = function displayTokenGuidesDropdown() {
   const tokens = this.config.tokens.map(x => x);
   tokens.sort((a, b) => (a.name > b.name ? 1 : -1));
   this.ejs(`${this.config.homeURL}/templates/tokenGuidesDropdown.ejs`, 'tokenGuidesDropdown', {
     tokens,
   });
 };
-EtherDelta.prototype.displayHelpDropdown = function displayHelpDropdown() {
+EtheRoox.prototype.displayHelpDropdown = function displayHelpDropdown() {
   this.ejs(`${this.config.homeURL}/templates/helpDropdown.ejs`, 'helpDropdown', {});
 };
-EtherDelta.prototype.displayHelp = function displayHelp(name) {
+EtheRoox.prototype.displayHelp = function displayHelp(name) {
   $('#helpBody').html('');
   this.ejs(`${this.config.homeURL}/help/${name}.ejs`, 'helpBody', {});
   $('#helpModal').modal('show');
@@ -2077,7 +2077,7 @@ EtherDelta.prototype.displayHelp = function displayHelp(name) {
     eventLabel: name,
   });
 };
-EtherDelta.prototype.displayScreencast = function displayScreencast(name) {
+EtheRoox.prototype.displayScreencast = function displayScreencast(name) {
   $('#screencastBody').html('');
   this.ejs(`${this.config.homeURL}/help/${name}.ejs`, 'screencastBody', {});
   $('#screencastModal').modal('show');
@@ -2088,15 +2088,15 @@ EtherDelta.prototype.displayScreencast = function displayScreencast(name) {
     eventLabel: name,
   });
 };
-EtherDelta.prototype.displayConnectionDescription = function displayConnectionDescription() {
+EtheRoox.prototype.displayConnectionDescription = function displayConnectionDescription() {
   this.ejs(`${this.config.homeURL}/templates/connectionDescription.ejs`, 'connection', {
     connection: this.connection,
-    contracts: this.config.contractEtherDeltaAddrs,
-    contractAddr: this.config.contractEtherDeltaAddr,
-    contractLink: `https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/address/${this.config.contractEtherDeltaAddr}`,
+    contracts: this.config.contractEtheRooxAddrs,
+    contractAddr: this.config.contractEtheRooxAddr,
+    contractLink: `https://${this.config.ethTestnet ? `${this.config.ethTestnet}.` : ''}etherscan.io/address/${this.config.contractEtheRooxAddr}`,
   });
 };
-EtherDelta.prototype.displayTokenGuide = function displayTokenGuide(name) {
+EtheRoox.prototype.displayTokenGuide = function displayTokenGuide(name) {
   const matchingTokens = this.config.tokens.filter(x => name === x.name);
   if (matchingTokens.length === 1) {
     const token = matchingTokens[0];
@@ -2124,17 +2124,17 @@ EtherDelta.prototype.displayTokenGuide = function displayTokenGuide(name) {
     $('#tokenModal').modal('show');
   }
 };
-EtherDelta.prototype.checkContractUpgrade = function checkContractUpgrade() {
+EtheRoox.prototype.checkContractUpgrade = function checkContractUpgrade() {
   if (
-    (!this.selectedContract || this.selectedContract !== this.config.contractEtherDeltaAddr) &&
+    (!this.selectedContract || this.selectedContract !== this.config.contractEtheRooxAddr) &&
     (this.addrs.length > 1 ||
       (this.addrs.length === 1 && this.addrs[0].slice(0, 39) !== '0x0000000000000000000000000000000000000'))
   ) {
     this.dialogInfo(
-      '<p>EtherDelta has a new smart contract. It is now selected.</p><p>Please use the "Smart Contract" menu to select the old one and withdraw from it.</p><p><a href="javascript:;" class="btn btn-default" onclick="alertify.closeAll(); bundle.EtherDelta.displayHelp(\'smartContract\')">Smart contract changelog</a></p>');
+      '<p>EtheRoox has a new smart contract. It is now selected.</p><p>Please use the "Smart Contract" menu to select the old one and withdraw from it.</p><p><a href="javascript:;" class="btn btn-default" onclick="alertify.closeAll(); bundle.EtheRoox.displayHelp(\'smartContract\')">Smart contract changelog</a></p>');
   }
 };
-EtherDelta.prototype.resetCaches = function resetCaches() {
+EtheRoox.prototype.resetCaches = function resetCaches() {
   utility.eraseCookie(this.config.eventsCacheCookie);
   location.reload();
   ga('send', {
@@ -2143,7 +2143,7 @@ EtherDelta.prototype.resetCaches = function resetCaches() {
     eventAction: 'Reset caches',
   });
 };
-EtherDelta.prototype.loading = function loading(callback) {
+EtheRoox.prototype.loading = function loading(callback) {
   [
     'deposit',
     'withdraw',
@@ -2161,7 +2161,7 @@ EtherDelta.prototype.loading = function loading(callback) {
   });
   callback();
 };
-EtherDelta.prototype.refresh = function refresh(callback, forceEventRead, initMarket, token, base) {
+EtheRoox.prototype.refresh = function refresh(callback, forceEventRead, initMarket, token, base) {
   this.q.push((done) => {
     if (token && base) {
       this.selectedToken = token;
@@ -2174,7 +2174,7 @@ EtherDelta.prototype.refresh = function refresh(callback, forceEventRead, initMa
       this.selectedToken = temp;
     }
     console.log('Beginning refresh', new Date(), `${this.selectedToken.name}/${this.selectedBase.name}`);
-    this.selectedContract = this.config.contractEtherDeltaAddr;
+    this.selectedContract = this.config.contractEtheRooxAddr;
     utility.createCookie(
       this.config.userCookie,
       JSON.stringify({
@@ -2317,7 +2317,7 @@ EtherDelta.prototype.refresh = function refresh(callback, forceEventRead, initMa
       });
   });
 };
-EtherDelta.prototype.refreshLoop = function refreshLoop() {
+EtheRoox.prototype.refreshLoop = function refreshLoop() {
   const self = this;
   function loop() {
     self.refresh(() => {
@@ -2326,7 +2326,7 @@ EtherDelta.prototype.refreshLoop = function refreshLoop() {
   }
   loop();
 };
-EtherDelta.prototype.initDisplays = function initDisplays(callback) {
+EtheRoox.prototype.initDisplays = function initDisplays(callback) {
   this.loading(() => {});
   this.displayTokenGuidesDropdown(() => {});
   this.displayConnectionDescription(() => {});
@@ -2340,7 +2340,7 @@ EtherDelta.prototype.initDisplays = function initDisplays(callback) {
     true,
     true);
 };
-EtherDelta.prototype.loadWeb3 = function loadWeb3(callback) {
+EtheRoox.prototype.loadWeb3 = function loadWeb3(callback) {
   this.config = config;
   // web3
   if (typeof web3 !== 'undefined' && typeof Web3 !== 'undefined') {
@@ -2396,7 +2396,7 @@ EtherDelta.prototype.loadWeb3 = function loadWeb3(callback) {
     callback();
   }
 };
-EtherDelta.prototype.initContracts = function initContracts(callback) {
+EtheRoox.prototype.initContracts = function initContracts(callback) {
   this.web3.version.getNetwork((error, version) => {
     if (!error && version && Number(version) !== 1 && configName !== 'testnet') {
       this.dialogError('You are connected to the Ethereum testnet. Please connect to the Ethereum mainnet.');
@@ -2436,7 +2436,7 @@ EtherDelta.prototype.initContracts = function initContracts(callback) {
     // const eventsCacheCookie = utility.readCookie(this.config.eventsCacheCookie);
     // if (eventsCacheCookie) eventsCache = JSON.parse(eventsCacheCookie);
     // connection
-    this.config.contractEtherDeltaAddr = this.config.contractEtherDeltaAddrs[0].addr;
+    this.config.contractEtheRooxAddr = this.config.contractEtheRooxAddrs[0].addr;
     // get accounts
     this.web3.eth.defaultAccount = this.config.ethAddr;
     this.web3.eth.getAccounts((e, accounts) => {
@@ -2465,10 +2465,10 @@ EtherDelta.prototype.initContracts = function initContracts(callback) {
     // load contract
     utility.loadContract(
       this.web3,
-      this.config.contractEtherDelta,
-      this.config.contractEtherDeltaAddr,
-      (err, contractEtherDelta) => {
-        this.contractEtherDelta = contractEtherDelta;
+      this.config.contractEtheRoox,
+      this.config.contractEtheRooxAddr,
+      (err, contractEtheRoox) => {
+        this.contractEtheRoox = contractEtheRoox;
         utility.loadContract(
           this.web3,
           this.config.contractToken,
@@ -2508,7 +2508,7 @@ EtherDelta.prototype.initContracts = function initContracts(callback) {
       });
   });
 };
-EtherDelta.prototype.startEtherDelta = function startEtherDelta() {
+EtheRoox.prototype.startEtheRoox = function startEtheRoox() {
   console.log('Beginning init', new Date());
   this.loadWeb3(() => {
     console.log('Web3 done', new Date());
@@ -2522,6 +2522,6 @@ EtherDelta.prototype.startEtherDelta = function startEtherDelta() {
   });
 };
 
-const etherDelta = new EtherDelta();
+const etheRoox = new EtheRoox();
 
-module.exports = { EtherDelta: etherDelta, utility };
+module.exports = { EtheRoox: etheRoox, utility };
