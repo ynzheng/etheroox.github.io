@@ -42,15 +42,15 @@ API.init = function init(callback, allContracts, path, provider, configName, loo
 
     // path
     if (path) {
-      this.config.contractEtherDelta = path + this.config.contractEtherDelta;
+      this.config.contractEtheRoox = path + this.config.contractEtheRoox;
       this.config.contractToken = path + this.config.contractToken;
     }
 
     // contracts
-    this.contractEtherDelta = undefined;
-    this.contractEtherDeltaAddrs = [this.config.contractEtherDeltaAddrs[0].addr];
+    this.contractEtheRoox = undefined;
+    this.contractEtheRooxAddrs = [this.config.contractEtheRooxAddrs[0].addr];
     if (allContracts) {
-      this.contractEtherDeltaAddrs = this.config.contractEtherDeltaAddrs.map(x => x.addr);
+      this.contractEtheRooxAddrs = this.config.contractEtheRooxAddrs.map(x => x.addr);
     }
     this.contractToken = undefined;
 
@@ -73,10 +73,10 @@ API.init = function init(callback, allContracts, path, provider, configName, loo
         (callbackSeries) => {
           this.utility.loadContract(
             this.web3,
-            this.config.contractEtherDelta,
-            this.contractEtherDeltaAddrs[0],
+            this.config.contractEtheRoox,
+            this.contractEtheRooxAddrs[0],
             (err, contract) => {
-              this.contractEtherDelta = contract;
+              this.contractEtheRoox = contract;
               callbackSeries(null, true);
             });
         },
@@ -113,7 +113,7 @@ API.init = function init(callback, allContracts, path, provider, configName, loo
       ],
       () => {
         callback(null, {
-          contractEtherDelta: this.contractEtherDelta,
+          contractEtheRoox: this.contractEtheRoox,
           contractToken: this.contractToken,
         });
       });
@@ -178,10 +178,10 @@ API.logs = function logs(callback, lookbackIn) {
       if (event.blockNumber < startBlock) delete this.eventsCache[id]; // delete old events
     });
     async.mapSeries(
-      this.contractEtherDeltaAddrs,
-      (contractEtherDeltaAddr, callbackMap) => {
+      this.contractEtheRooxAddrs,
+      (contractEtheRooxAddr, callbackMap) => {
         const blocks = Object.values(this.eventsCache)
-          .filter(x => x.address === contractEtherDeltaAddr)
+          .filter(x => x.address === contractEtheRooxAddr)
           .map(x => x.blockNumber);
         const lastBlock = blocks.length ? blocks.max() : startBlock;
         const searches = [];
@@ -194,8 +194,8 @@ API.logs = function logs(callback, lookbackIn) {
           (searchRange, callbackMapSearch) => {
             this.utility.logsOnce(
               this.web3,
-              this.contractEtherDelta,
-              contractEtherDeltaAddr,
+              this.contractEtheRoox,
+              contractEtheRooxAddr,
               searchRange[0],
               searchRange[1],
               (errEvents, events) => {
@@ -269,13 +269,13 @@ API.getBalance = function getBalance(addr, callback) {
   });
 };
 
-API.getEtherDeltaBalance = function getEtherDeltaBalance(addr, callback) {
+API.getEtheRooxBalance = function getEtheRooxBalance(addr, callback) {
   if (addr.length === 42) {
     const token = '0x0000000000000000000000000000000000000000'; // ether token
     this.utility.call(
       this.web3,
-      this.contractEtherDelta,
-      this.contractEtherDeltaAddrs[0],
+      this.contractEtheRoox,
+      this.contractEtheRooxAddrs[0],
       'balanceOf',
       [token, addr],
       (err, result) => {
@@ -290,7 +290,7 @@ API.getEtherDeltaBalance = function getEtherDeltaBalance(addr, callback) {
   }
 };
 
-API.getEtherDeltaTokenBalances = function getEtherDeltaTokenBalances(addr, callback) {
+API.getEtheRooxTokenBalances = function getEtheRooxTokenBalances(addr, callback) {
   if (addr.length === 42) {
     async.reduce(
       this.config.tokens,
@@ -298,8 +298,8 @@ API.getEtherDeltaTokenBalances = function getEtherDeltaTokenBalances(addr, callb
       (memo, token, callbackReduce) => {
         this.utility.call(
           this.web3,
-          this.contractEtherDelta,
-          this.contractEtherDeltaAddrs[0],
+          this.contractEtheRoox,
+          this.contractEtheRooxAddrs[0],
           'balanceOf',
           [token.addr, addr],
           (err, result) => {
@@ -407,14 +407,14 @@ API.getUSDBalance = function getUSDBalance(addr, tokenPrices, callback) {
         API.getTokenBalances(addr, callbackParallel);
       },
       (callbackParallel) => {
-        API.getEtherDeltaTokenBalances(addr, callbackParallel);
+        API.getEtheRooxTokenBalances(addr, callbackParallel);
       },
       (callbackParallel) => {
         API.getCoinMarketCapTicker(callbackParallel);
       },
     ],
     (err, results) => {
-      const balances = { Wallet: results[0], EtherDelta: results[1] };
+      const balances = { Wallet: results[0], EtheRoox: results[1] };
       const tickers = results[2];
       let total = 0;
       const ETHUSD = Number(tickers.filter(x => x.symbol === 'ETH')[0].price_usd);
@@ -579,7 +579,7 @@ API.addOrderFromMessage = function addOrderFromMessage(messageIn, callback) {
 };
 
 API.addOrderFromEvent = function addOrderFromEvent(event, callback) {
-  if (event.event === 'Order' && event.address === this.contractEtherDeltaAddrs[0]) {
+  if (event.event === 'Order' && event.address === this.contractEtheRooxAddrs[0]) {
     const id = (event.blockNumber * 1000) + event.transactionIndex;
     if (!this.ordersCache[`${id}_buy`]) {
       const buyOrder = {
@@ -659,8 +659,8 @@ API.updateOrder = function updateOrder(orderIn, callback) {
         () => {
           this.utility.call(
             this.web3,
-            this.contractEtherDelta,
-            this.contractEtherDeltaAddrs[0],
+            this.contractEtheRoox,
+            this.contractEtheRooxAddrs[0],
             'availableVolume',
             [
               order.order.tokenGet,
@@ -713,8 +713,8 @@ API.updateOrder = function updateOrder(orderIn, callback) {
                 Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize) {
                   this.utility.call(
                     this.web3,
-                    this.contractEtherDelta,
-                    this.contractEtherDeltaAddrs[0],
+                    this.contractEtheRoox,
+                    this.contractEtheRooxAddrs[0],
                     'amountFilled',
                     [
                       order.order.tokenGet,
@@ -907,7 +907,7 @@ API.getTrades = function getTrades(callback) {
   const trades = [];
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Trade' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0) {
+    if (event.event === 'Trade' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         // sell
@@ -955,7 +955,7 @@ API.getFees = function getFees(callback) {
   const feeMake = new BigNumber(0.000);
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Trade' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0) {
+    if (event.event === 'Trade' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         // take fee
@@ -985,7 +985,7 @@ API.getVolumes = function getVolumes(callback) {
   const volumes = [];
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Trade' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0) {
+    if (event.event === 'Trade' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0) {
       if (event.args.amountGive.toNumber() > 0 && event.args.amountGet.toNumber() > 0) {
         // don't show trades involving 0 amounts
         volumes.push({
@@ -1013,7 +1013,7 @@ API.getDepositsWithdrawals = function getDepositsWithdrawals(callback) {
   const depositsWithdrawals = [];
   const events = Object.values(this.eventsCache);
   events.forEach((event) => {
-    if (event.event === 'Deposit' && this.contractEtherDeltaAddrs.indexOf(event.address >= 0)) {
+    if (event.event === 'Deposit' && this.contractEtheRooxAddrs.indexOf(event.address >= 0)) {
       if (event.args.amount.toNumber() > 0) {
         const token = API.getToken(event.args.token);
         depositsWithdrawals.push({
@@ -1026,7 +1026,7 @@ API.getDepositsWithdrawals = function getDepositsWithdrawals(callback) {
         });
       }
     } else if (
-      event.event === 'Withdraw' && this.contractEtherDeltaAddrs.indexOf(event.address) >= 0
+      event.event === 'Withdraw' && this.contractEtheRooxAddrs.indexOf(event.address) >= 0
     ) {
       if (event.args.amount.toNumber() > 0) {
         const token = API.getToken(event.args.token);
@@ -1069,7 +1069,7 @@ API.returnTicker = function returnTicker(callback) {
             Number(order.ethAvailableVolumeBase).toFixed(3) >= this.minOrderSize);
           // filter only orders that match the smart contract address
           ordersFiltered = ordersFiltered.filter(
-            order => order.order.contractAddr === this.config.contractEtherDeltaAddrs[0].addr);
+            order => order.order.contractAddr === this.config.contractEtheRooxAddrs[0].addr);
           // final order filtering and sorting
           const buyOrders = ordersFiltered.filter(x => x.amount > 0);
           const sellOrders = ordersFiltered.filter(x => x.amount < 0);
@@ -1156,8 +1156,8 @@ API.publishOrder = function publishOrder(
   }
   this.utility.call(
     this.web3,
-    this.contractEtherDelta,
-    this.contractEtherDeltaAddrs[0],
+    this.contractEtheRoox,
+    this.contractEtheRooxAddrs[0],
     'balanceOf',
     [tokenGive, addr],
     (err, result) => {
@@ -1168,7 +1168,7 @@ API.publishOrder = function publishOrder(
           // offchain order
         const condensed = this.utility.pack(
           [
-            this.contractEtherDeltaAddrs[0],
+            this.contractEtheRooxAddrs[0],
             tokenGet,
             amountGet,
             tokenGive,
@@ -1184,7 +1184,7 @@ API.publishOrder = function publishOrder(
           } else {
               // Send order to Gitter channel:
             const order = {
-              contractAddr: this.contractEtherDeltaAddrs[0],
+              contractAddr: this.contractEtheRooxAddrs[0],
               tokenGet,
               amountGet,
               tokenGive,
@@ -1214,8 +1214,8 @@ API.publishOrder = function publishOrder(
           // onchain order
         API.utility.send(
             this.web3,
-            this.contractEtherDelta,
-            this.contractEtherDeltaAddrs[0],
+            this.contractEtheRoox,
+            this.contractEtheRooxAddrs[0],
             'order',
           [
             tokenGet,
