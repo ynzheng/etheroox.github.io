@@ -15,7 +15,7 @@ if (cliOptions.help) {
   API.init(() => {
     API.logs(() => {
       const pairs = marketMakerConfig.pairs;
-      API.getEtherDeltaTokenBalances(marketMakerConfig.account.address, (errBalances, balances) => {
+      API.getEtheRooxTokenBalances(marketMakerConfig.account.address, (errBalances, balances) => {
         API.getOrdersRemote((err, result) => {
           if (!err) {
             async.eachSeries(
